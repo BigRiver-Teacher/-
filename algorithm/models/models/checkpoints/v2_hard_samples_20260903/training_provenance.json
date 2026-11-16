@@ -1,0 +1,33 @@
+{
+  "protocol": "fixed_train_only_no_validation_or_holdout",
+  "feature_version": "v2",
+  "class_names": [
+    "normal",
+    "fallen"
+  ],
+  "bundle": "D:\\My_Grand_Projects2026\\fall-detection\\fall-detection-vison-results\\refined_v2_20260829\\老人摔倒的第二个数据视频\\annotations\\v2_hard_samples_20260902_0_to_40s",
+  "bundle_hashes": {
+    "X.npy": "DC638035D4EA5567A223FE4773AB9F26D07A7B632BB8DFD5F0CE63EFD4C1D300",
+    "y.npy": "FC8E04E51F46C9E4D40AEE95AFB251D8DE5A489528C2316A5DB9902B7751A641",
+    "manifest.json": "64A6C8731B999C29891748C0ABEC69C3373DF6483C7CE327E99943881F632B14"
+  },
+  "fixed_config": {
+    "seed": 20260903,
+    "epochs": 50,
+    "batch_size": 64,
+    "hidden_size": 128,
+    "num_layers": 2,
+    "dropout": 0.3,
+    "learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "device_name": "cpu"
+  },
+  "report_summary": {
+    "samples": 813,
+    "class_counts": {
+      "normal": 159,
+      "fallen": 654
+    },
+    "evaluation_scope": "train_only_not_generalization"
+  }
+}

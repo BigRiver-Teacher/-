@@ -11,7 +11,7 @@ if errorlevel 1 (
   call conda activate fall-detect
   if errorlevel 1 (
     echo [WARN] conda env "fall-detect" not found. Create it first:
-    echo        conda create -n fall-detect python=3.10 -y
+    echo        conda create -n fall-detect python=3.13 -y
   )
 )
 
@@ -23,6 +23,6 @@ if errorlevel 1 (
 echo [INFO] starting fall detection service at http://localhost:8001
 echo        health : http://127.0.0.1:8001/api/fall-detection/health
 echo        docs   : http://127.0.0.1:8001/docs
-echo        NOTE   : degraded mode unless algorithm\models is complete.
+echo        NOTE   : degraded mode if model weights are not placed (see algorithm\README.md).
 python -m uvicorn main:app --host 0.0.0.0 --port 8001
 pause

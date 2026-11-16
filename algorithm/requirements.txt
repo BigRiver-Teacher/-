@@ -1,14 +1,15 @@
 # 朝夕护行 · 跌倒检测服务 Python 依赖
-# 建议 Python 3.10（conda 环境 fall-detect）
-# PyTorch 请按 CUDA/CPU 单独安装（见 README 第二节），此处不锁定版本
-
-fastapi>=0.110
-uvicorn[standard]>=0.27
-python-multipart>=0.0.9
-python-dotenv>=1.0
-opencv-python>=4.8
-numpy>=1.24
-ultralytics>=8.0
-torch>=2.0
-torchvision>=0.15
-tqdm>=4.66
+# 版本锁定为 2026-11-16 实测通过的环境（Windows 11 / Python 3.13.12 / CPU 推理）
+# PyTorch 建议按 CPU / CUDA 单独安装，见 README「二、环境准备」
+fastapi==0.163.1
+uvicorn[standard]==0.54.0
+python-multipart==0.0.34
+python-dotenv==1.2.4
+opencv-python==5.0.0.93
+numpy==2.5.3
+ultralytics==8.4.215
+torch==2.15.0
+torchvision==0.29.2
+tqdm==4.70.1
+# BoT-SORT 跟踪器必需（缺失时 ultralytics 会在推理期尝试联网自动安装）
+lap==0.5.14

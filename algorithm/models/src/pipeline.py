@@ -13,7 +13,12 @@ from tqdm import tqdm
 
 from models.fall_detector import FallDetector
 from src.detector import PersonDetector
+from src.fall_state import FallStateGate
 from src.feature_extraction import FeatureExtractor
+from src.feature_extraction_v2 import FeatureExtractorV2
+from src.model_config import resolve_model_config
+from src.incident_manager import FallIncidentManager
+from src.person_identity import LogicalPersonResolver, PersonObservation
 from src.track_manager import TrackManager
 from src.utils import (
     COLOR_GREEN,
@@ -35,32 +40,28 @@ STATE_COLORS = {
 }
 
 
-class FallEvent:
-    """Represents a detected fall event."""
+def _label_scale(scale: float) -> float:
+    """Keep person labels readable without growing with high-resolution frames."""
+    return min(float(scale), 1.0)
 
-    def __init__(self, track_id: int, start_frame: int, fps: float, confidence: float):
-        self.track_id = track_id
-        self.start_frame = start_frame
-        self.end_frame = start_frame
-        self.fps = fps
-        self.confidence = confidence
-        self.state = "falling"
 
-    def update(self, frame_num: int, confidence: float, state: str):
-        self.end_frame = frame_num
-        self.confidence = max(self.confidence, confidence)
-        self.state = state
+def _identity_is_confirmed(
+    raw_track_id: int,
+    logical_ids: dict[int, int],
+    ambiguous_raw_ids: set[int],
+) -> bool:
+    """Return whether a detection can safely inherit a person's history."""
+    return raw_track_id in logical_ids and raw_track_id not in ambiguous_raw_ids
 
-    def to_dict(self) -> dict:
-        return {
-            "type": "fall",
-            "track_id": self.track_id,
-            "start_frame": self.start_frame,
-            "end_frame": self.end_frame,
-            "timestamp_start": format_timestamp(self.start_frame, self.fps),
-            "timestamp_end": format_timestamp(self.end_frame, self.fps),
-            "confidence": round(self.confidence, 3),
-        }
+
+def _fall_label_is_allowed(
+    person_id: int, incident_person_id: int, target_status: str
+) -> bool:
+    """Only draw FALLEN on the confirmed target of an active event."""
+    return person_id == incident_person_id and target_status in {
+        "target_observed",
+        "target_reconnected",
+    }
 
 
 class FallDetectionPipeline:
@@ -90,17 +91,22 @@ class FallDetectionPipeline:
             tracker_config=tracker_config,
         )
 
-        # LSTM classifier
-        self.lstm = FallDetector()
+        # LSTM classifier and feature extractor must agree on checkpoint width.
         ckpt = torch.load(lstm_checkpoint, map_location=self.device, weights_only=False)
+        feature_version, input_size, self.class_names = resolve_model_config(ckpt)
+        self.lstm = FallDetector(input_size=input_size, num_classes=len(self.class_names))
         self.lstm.load_state_dict(ckpt["model_state_dict"])
         self.lstm.to(self.device)
         self.lstm.eval()
         logger.info(f"LSTM loaded from {lstm_checkpoint}")
 
         # Feature extraction
-        self.feature_extractor = FeatureExtractor()
+        self.feature_version = feature_version
+        self.feature_extractor = FeatureExtractorV2() if feature_version == "v2" else FeatureExtractor()
         self.track_manager = TrackManager(window_size=30, stale_threshold=90)
+        self.person_resolver = LogicalPersonResolver(max_gap_frames=60)
+        self.incident_manager = FallIncidentManager()
+        self.fall_state_gate = FallStateGate()
 
         # Settings
         self.confidence_threshold = confidence_threshold
@@ -108,12 +114,7 @@ class FallDetectionPipeline:
 
         # State
         self._interrupted = False
-        self._cooldowns: dict[int, int] = {}  # track_id → last alert frame
-        self._active_events: dict[int, FallEvent] = {}
-        self._all_events: list[FallEvent] = []
-        self._fall_sticky: dict[int, int] = {}  # track_id → frame when fall detected
-        # Remember fallen person's last bbox for occlusion persistence
-        self._fallen_positions: dict[int, tuple] = {}  # track_id → (bbox, last_frame)
+        self.alarm_lost_timeout_seconds = 10.0
 
     def process_video(
         self,
@@ -133,12 +134,10 @@ class FallDetectionPipeline:
         """
         input_path = Path(input_path)
         self._interrupted = False
-        self._cooldowns.clear()
-        self._active_events.clear()
-        self._all_events.clear()
-        self._fall_sticky.clear()
-        self._fallen_positions.clear()
         self.track_manager.reset()
+        self.person_resolver.reset()
+        self.incident_manager.reset()
+        self.fall_state_gate = FallStateGate()
         self.detector.reset_tracker()
 
         # Setup signal handler for graceful Ctrl+C
@@ -147,7 +146,7 @@ class FallDetectionPipeline:
 
         start_time = time.time()
         falls_detected = 0
-        unique_tracks = set()
+        unique_people = set()
 
         try:
             with VideoReader(input_path) as reader:
@@ -174,62 +173,79 @@ class FallDetectionPipeline:
 
                     # 1. Detect + Track
                     frame_result = self.detector.detect_frame(frame, frame_num)
+                    observations = [
+                        PersonObservation(person.track_id, person.bbox, person.keypoints)
+                        for person in frame_result.persons
+                        if person.track_id >= 0
+                    ]
+                    logical_ids = self.person_resolver.resolve_frame(observations, frame_num)
+                    ambiguous_raw_ids = self.person_resolver.ambiguous_raw_ids
 
                     # 2. Extract features + classify per person
-                    active_ids = set()
+                    active_person_ids = set()
                     for person in frame_result.persons:
                         if person.track_id < 0:
                             continue
 
-                        active_ids.add(person.track_id)
-                        unique_tracks.add(person.track_id)
+                        raw_track_id = person.track_id
+                        scale = max(meta.height / 720, 1.0)
+                        if not _identity_is_confirmed(
+                            raw_track_id, logical_ids, ambiguous_raw_ids
+                        ):
+                            self._draw_label_scaled(
+                                frame,
+                                person.bbox,
+                                "TARGET UNCERTAIN",
+                                COLOR_ORANGE,
+                                "normal",
+                                scale,
+                            )
+                            continue
+
+                        person_id = logical_ids[raw_track_id]
+                        active_person_ids.add(person_id)
+                        unique_people.add(person_id)
 
                         # Extract features
-                        prev_cog = self.track_manager.get_prev_cog_height(person.track_id)
+                        prev_cog = self.track_manager.get_prev_cog_height(person_id)
                         features = self.feature_extractor.extract(
                             person.keypoints, person.bbox, meta.height, prev_cog
                         )
-                        self.track_manager.update(person.track_id, features, frame_num)
+                        self.track_manager.update(person_id, features, frame_num)
 
                         # Classify if buffer is full
-                        seq = self.track_manager.get_sequence(person.track_id)
+                        seq = self.track_manager.get_sequence(person_id)
                         state = "normal"
                         conf = 0.0
 
                         if seq is not None:
                             state, conf = self._classify(seq)
 
-                            # Sticky fall: once fallen, stay "fallen" until
-                            # person clearly stands (upright angle + low CoG)
-                            tid = person.track_id
-                            if state in ("falling", "fallen") and conf >= self.confidence_threshold:
-                                self._fall_sticky[tid] = frame_num
-                            elif tid in self._fall_sticky:
-                                is_standing = (
-                                    features.body_angle < 0.15
-                                    and features.cog_height < 0.55
-                                    and features.bbox_aspect_ratio < 0.8
-                                )
-                                if is_standing:
-                                    del self._fall_sticky[tid]
-                                else:
-                                    state = "fallen"
-                                    conf = max(conf, 0.5)
-
-                            self.track_manager.set_classification(person.track_id, state, conf)
+                        decision = self.fall_state_gate.update(person_id, state, conf)
+                        state = decision.display_state
+                        if state == "normal":
+                            conf = 0.0
+                        self.track_manager.set_classification(person_id, state, conf)
 
                         # Handle fall events
+                        incident = None
                         if state in ("falling", "fallen") and conf >= self.confidence_threshold:
-                            self._handle_fall_event(
-                                person.track_id, frame_num, state, conf, meta.fps
+                            incident = self._handle_fall_event(
+                                person_id, raw_track_id, frame_num, state, conf, meta.fps
                             )
-                            falls_detected = len(self._all_events)
+                            falls_detected = len(self.incident_manager.all_incidents)
 
                         # Draw on frame — scale sizes to resolution
-                        scale = max(meta.height / 720, 1.0)
-
                         # Determine display state and color
-                        if state in ("falling", "fallen") and conf >= self.confidence_threshold:
+                        show_fall_label = (
+                            state in ("falling", "fallen")
+                            and conf >= self.confidence_threshold
+                            and incident is not None
+                            and _fall_label_is_allowed(
+                                person_id, incident.person_id, incident.target_status
+                            )
+                        )
+                        if show_fall_label:
                             display_state = state
                         else:
                             display_state = "normal"
@@ -242,13 +258,16 @@ class FallDetectionPipeline:
                             "falling": "FALLING",
                             "fallen": "FALLEN",
                         }
-                        if display_state != "normal":
+                        if incident is not None and not show_fall_label:
+                            label = "TARGET UNCERTAIN"
+                            color = COLOR_ORANGE
+                        elif display_state != "normal":
                             label = (
-                                f"ID:{person.track_id} "
+                                f"P:{person_id} "
                                 f"{state_labels[display_state]} {conf:.0%}"
                             )
                         else:
-                            label = f"ID:{person.track_id} {state_labels[display_state]}"
+                            label = f"P:{person_id} {state_labels[display_state]}"
 
                         draw_skeleton(
                             frame, person.keypoints, color=color,
@@ -259,56 +278,53 @@ class FallDetectionPipeline:
                             frame, person.bbox, label, color, state, scale
                         )
 
-                        # Save position of fallen persons for occlusion persistence
-                        if display_state in ("falling", "fallen"):
-                            self._fallen_positions[person.track_id] = (
-                                person.bbox, frame_num
-                            )
-
-                    # Draw persistent fallen markers for occluded tracks
-                    scale = max(meta.height / 720, 1.0)
-                    for tid, (bbox, last_frame) in list(self._fallen_positions.items()):
-                        if tid in active_ids:
-                            continue  # Still tracked, already drawn above
-                        frames_since = frame_num - last_frame
-                        if frames_since > meta.fps * 10:
-                            # Lost for >10 seconds, remove
-                            del self._fallen_positions[tid]
-                            continue
-                        # Draw ghost bbox for occluded fallen person
-                        self._draw_label_scaled(
-                            frame, bbox,
-                            f"ID:{tid} FALLEN (occluded)",
-                            COLOR_ORANGE, "fallen", scale,
-                        )
-
                     # Draw alerts based on current per-person state
+                    self.fall_state_gate.discard_missing(active_person_ids)
+                    self.incident_manager.refresh_visible_people(active_person_ids, frame_num)
+                    incidents_by_person = {
+                        incident.person_id: incident
+                        for incident in self.incident_manager.active_incidents()
+                    }
                     alert_scale = max(meta.height / 720, 1.0)
                     has_falling = False
                     has_fallen = False
                     fallen_duration = 0.0
+                    alert_incident = None
 
                     for person in frame_result.persons:
-                        tid = person.track_id
-                        t_state, t_conf = self.track_manager.get_classification(tid)
+                        if person.track_id < 0:
+                            continue
+                        if not _identity_is_confirmed(
+                            person.track_id, logical_ids, ambiguous_raw_ids
+                        ):
+                            continue
+                        person_id = logical_ids[person.track_id]
+                        t_state, t_conf = self.track_manager.get_classification(person_id)
                         if t_state == "falling" and t_conf >= self.confidence_threshold:
                             has_falling = True
                         elif t_state == "fallen" and t_conf >= self.confidence_threshold:
                             has_fallen = True
-                            if tid in self._active_events:
+                            if person_id in incidents_by_person:
+                                incident = incidents_by_person[person_id]
+                                alert_incident = incident
                                 fallen_duration = max(
                                     fallen_duration,
-                                    (frame_num - self._active_events[tid].start_frame)
+                                    (frame_num - incident.start_frame)
                                     / max(meta.fps, 1),
                                 )
 
-                    # Also check occluded fallen persons
-                    for tid in self._fallen_positions:
-                        if tid not in active_ids and tid in self._active_events:
+                    # Keep the alert during a short detection loss, but never draw a stale bbox.
+                    lost_timeout = meta.fps * self.alarm_lost_timeout_seconds
+                    for incident in self.incident_manager.active_incidents():
+                        if (
+                            incident.target_status in ("target_lost", "target_pending_confirmation")
+                            and frame_num - incident.last_seen_frame <= lost_timeout
+                        ):
                             has_fallen = True
+                            alert_incident = incident
                             fallen_duration = max(
                                 fallen_duration,
-                                (frame_num - self._active_events[tid].start_frame)
+                                (frame_num - incident.start_frame)
                                 / max(meta.fps, 1),
                             )
 
@@ -320,9 +336,17 @@ class FallDetectionPipeline:
                             thickness=max(3, int(3 * alert_scale)),
                         )
                     elif has_fallen:
+                        event_label = "PERSON FALLEN"
+                        if alert_incident is not None:
+                            if alert_incident.target_status == "target_lost":
+                                event_label = f"FALL EVENT #{alert_incident.event_id}: TARGET LOST"
+                            elif alert_incident.target_status == "target_pending_confirmation":
+                                event_label = (
+                                    f"FALL EVENT #{alert_incident.event_id}: TARGET PENDING"
+                                )
                         draw_alert(
                             frame,
-                            f"PERSON FALLEN ({fallen_duration:.1f}s)",
+                            f"{event_label} ({fallen_duration:.1f}s)",
                             color=COLOR_ORANGE,
                             font_scale=1.2 * alert_scale,
                             thickness=max(3, int(3 * alert_scale)),
@@ -331,7 +355,7 @@ class FallDetectionPipeline:
                     # Status bar
                     draw_status_bar(
                         frame, frame_num, meta.total_frames,
-                        meta.fps, len(active_ids), falls_detected,
+                        meta.fps, len(active_person_ids), falls_detected,
                     )
 
                     # Write annotated frame
@@ -362,10 +386,12 @@ class FallDetectionPipeline:
                 "total_frames": meta.total_frames,
                 "resolution": f"{meta.width}x{meta.height}",
             },
-            "events": [e.to_dict() for e in self._all_events],
+            "events": [
+                incident.to_dict(meta.fps) for incident in self.incident_manager.all_incidents
+            ],
             "summary": {
-                "total_falls": len(self._all_events),
-                "persons_tracked": len(unique_tracks),
+                "total_falls": len(self.incident_manager.all_incidents),
+                "persons_tracked": len(unique_people),
                 "processing_time_seconds": round(processing_time, 1),
                 "interrupted": self._interrupted,
             },
@@ -383,8 +409,8 @@ class FallDetectionPipeline:
         logger.info(f"\n{'='*60}")
         logger.info("RESULTS")
         logger.info(f"{'='*60}")
-        logger.info(f"Falls detected: {len(self._all_events)}")
-        logger.info(f"Persons tracked: {len(unique_tracks)}")
+        logger.info(f"Falls detected: {len(self.incident_manager.all_incidents)}")
+        logger.info(f"Persons tracked: {len(unique_people)}")
         logger.info(f"Processing time: {processing_time:.1f}s")
         if output_path:
             logger.info(f"Output video: {output_path}")
@@ -395,17 +421,18 @@ class FallDetectionPipeline:
 
     @staticmethod
     def _draw_label_scaled(frame, bbox, label, color, state, scale):
-        """Draw a large, easy-to-read label above the bounding box."""
+        """Draw a compact label above the current bounding box."""
         import cv2
 
         x1, y1, x2, y2 = [int(v) for v in bbox]
-        bbox_thick = max(2, int(3 * scale))
+        ui_scale = _label_scale(scale)
+        bbox_thick = max(2, int(2 * ui_scale))
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, bbox_thick)
 
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale_val = 0.7 * scale
-        font_thick = max(1, int(2 * scale))
-        padding = int(6 * scale)
+        font_scale_val = 0.55 * ui_scale
+        font_thick = max(1, int(1.5 * ui_scale))
+        padding = int(4 * ui_scale)
 
         (tw, th), baseline = cv2.getTextSize(label, font, font_scale_val, font_thick)
 
@@ -440,33 +467,35 @@ class FallDetectionPipeline:
         preds, confs = self.lstm.predict(x)
         class_id = preds[0].item()
         confidence = confs[0].item()
-        class_name = FallDetector.CLASS_NAMES.get(class_id, "normal")
+        class_name = self.class_names.get(class_id, "normal")
         return class_name, confidence
 
     def _handle_fall_event(
-        self, track_id: int, frame_num: int, state: str, conf: float, fps: float
+        self,
+        person_id: int,
+        raw_track_id: int,
+        frame_num: int,
+        state: str,
+        conf: float,
+        fps: float,
     ):
-        """Handle a detected fall, with cooldown logic."""
-        # Check cooldown
-        last_alert = self._cooldowns.get(track_id, -self.cooldown_frames - 1)
-        if frame_num - last_alert < self.cooldown_frames:
-            # Update existing active event
-            if track_id in self._active_events:
-                self._active_events[track_id].update(frame_num, conf, state)
-            return
-
-        if track_id not in self._active_events:
-            # New fall event
-            event = FallEvent(track_id, frame_num, fps, conf)
-            self._active_events[track_id] = event
-            self._all_events.append(event)
-            self._cooldowns[track_id] = frame_num
+        """Report a fall into the event-first incident manager."""
+        incident_count = len(self.incident_manager.all_incidents)
+        incident = self.incident_manager.report_fall(
+            person_id=person_id,
+            raw_track_id=raw_track_id,
+            frame_num=frame_num,
+            confidence=conf,
+        )
+        if len(self.incident_manager.all_incidents) > incident_count:
             logger.info(
-                f"FALL DETECTED: Track {track_id} at frame {frame_num} "
+                f"FALL DETECTED: Event {incident.event_id}, Person {person_id} "
+                f"at frame {frame_num} "
                 f"({format_timestamp(frame_num, fps)}) conf={conf:.2f}"
             )
-        else:
-            self._active_events[track_id].update(frame_num, conf, state)
+        return incident
 
     def _handle_interrupt(self, signum, frame):
         self._interrupted = True
+
+

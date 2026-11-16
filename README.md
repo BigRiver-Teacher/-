@@ -1,12 +1,12 @@
 # 朝夕护行 · 多模态防跌倒智慧养老平台
 
-面向居家与社区养老场景的安全监护平台：通过姿态估计 + 时序分类识别跌倒，联动告警推送、家属/社区处置与健康档案管理。
+面向居家与社区养老场景的安全监护平台：通过姿态估计 + 跨帧跟踪 + 时序分类识别跌倒，联动告警推送、家属/社区处置与健康档案管理。
 
 | 模块 | 技术栈 | 端口 | 说明 |
 | --- | --- | --- | --- |
 | 前端 | Vue 3 + TypeScript + Vite + Element Plus + ECharts + Pinia | 5173 | 管理端界面、监控大屏、业务交互 |
 | 后端 | Spring Boot 3.3.4 + MyBatis-Plus + MySQL 8（Java 17） | 8080 | REST 接口、JWT 鉴权、业务逻辑 |
-| 算法 | FastAPI + YOLO11n-pose + LSTM（PyTorch） | 8001 | 视频跌倒检测，输出事件 JSON 与标注视频 |
+| 算法 | FastAPI + YOLO11n-pose + BoT-SORT + LSTM v2（八特征、二分类） | 8001 | 视频跌倒检测，输出 12 字段事件 JSON 与标注视频 |
 
 ## 目录结构
 
@@ -34,17 +34,20 @@ zhaoxi-huxing/
 │   │   ├── init.sql                        建库建表（25 张表）
 │   │   └── seed_data.sql                   演示数据
 │   └── pom.xml
-├── algorithm/                    跌倒检测微服务
+├── algorithm/                    跌倒检测微服务（v2：八特征、二分类）
 │   ├── main.py                   FastAPI 入口
 │   ├── fall_detection_routes.py  路由
 │   ├── fall_detection_service.py 推理封装与模型加载
-│   ├── models/                   完整模型工程（已内置）
-│   │   ├── src/pipeline.py       端到端推理管线
+│   ├── models/                   推理工程（代码内置，权重需按 algorithm/README.md 第三节放置）
+│   │   ├── detect_falls.py               命令行入口
+│   │   ├── src/pipeline.py               端到端推理管线（v2）
+│   │   ├── src/feature_extraction_v2.py  v2 八特征（缺失感知）
 │   │   ├── models/fall_detector.py       LSTM 分类器
-│   │   ├── models/checkpoints/best.pth   LSTM 权重
+│   │   ├── models/checkpoints/           LSTM 检查点（v2 last.pth / v1 best.pth，不入库）
 │   │   ├── configs/botsort.yaml          跟踪器配置
-│   │   └── yolo11n-pose-fallen.pt        改进版姿态权重
-│   ├── model-v2-resources/       v2 权重、微调/对比脚本、训练证据
+│   │   ├── output/test_events.json       12 字段事件 JSON 示例
+│   │   └── yolo11n-pose-fallen.pt        改进版姿态权重（不入库）
+│   ├── model-v2-resources/       v2 微调/对比脚本与训练评测证据
 │   ├── requirements.txt
 │   └── .env.example
 ├── docs/                         架构说明、技术路线图、流程图
@@ -102,16 +105,19 @@ npm run dev
 
 ```bash
 cd algorithm
-conda activate fall-detect
+python -m venv .venv && .venv\Scripts\activate     # Linux/macOS: source .venv/bin/activate
+pip install torch==2.15.0 torchvision==0.29.2      # GPU 环境按 CUDA 版本换 wheel
 pip install -r requirements.txt
-cp .env.example .env        # 首次运行需复制
-uvicorn main:app --host 0.0.0.0 --port 8001
+cp .env.example .env                               # Windows: copy .env.example .env
+python main.py
 ```
 
 验证：`http://127.0.0.1:8001/api/fall-detection/health`，模型加载成功时返回 `loaded: true`。
 接口文档：`http://127.0.0.1:8001/docs`。
 
-> 模型工程已内置在 `algorithm/models/`，`.env.example` 中 `FALL_MODEL_DIR=models` 即为默认布局，无需额外配置路径。
+> 推理代码已内置在 `algorithm/models/`，但**权重文件不入库**：需按 `algorithm/README.md`
+> 第三节把 `yolo11n-pose-fallen.pt` 与 LSTM 检查点放到指定路径。未放置时服务仍可启动，
+> `/health` 返回 `loaded: false` 并给出缺失路径。
 
 ### 第 4 步：自检
 
@@ -137,9 +143,19 @@ scripts\99-verify.bat
 
 ### 算法服务
 
-由 `algorithm/.env` 或 `FALL_*` 环境变量控制（环境变量优先）：`FALL_MODEL_DIR`、`FALL_YOLO_MODEL`、
-`FALL_LSTM_CHECKPOINT`、`FALL_TRACKER_CONFIG`、`FALL_DEVICE`、`FALL_CONFIDENCE_THRESHOLD`、`FALL_PORT` 等，
-详见 `algorithm/.env.example` 与 `algorithm/README.md`。
+由 `algorithm/.env` 或 `FALL_*` 环境变量控制（环境变量优先）：
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `FALL_MODEL_DIR` | `models` | 模型工程根目录（相对 `algorithm/`） |
+| `FALL_YOLO_MODEL` | `yolo11n-pose-fallen.pt` | 姿态权重，缺失自动回退 `yolo11n-pose.pt` |
+| `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | v2 八特征二分类；改 `models/checkpoints/best.pth` 即回退 v1 三分类 |
+| `FALL_TRACKER_CONFIG` | `configs/botsort.yaml` | BoT-SORT 跟踪器配置 |
+| `FALL_DEVICE` | 空 | `cuda` / `cpu` / 留空自动 |
+| `FALL_CONFIDENCE_THRESHOLD` | `0.40` | 跌倒置信度阈值 |
+| `FALL_PORT` | `8001` | 服务端口 |
+
+完整清单与说明见 `algorithm/.env.example` 与 `algorithm/README.md`。
 
 ### 前端
 
@@ -202,8 +218,10 @@ Windows 下也可双击运行 `scripts\05-insert-video.bat`（参数同上）。
 - **8080 被占用**：`netstat -ano | findstr 8080` 结束进程，或改 `server.port` 并同步前端代理。
 - **JDK 版本过高**：改用 JDK 17 或 21。
 - **npm install 慢**：切换镜像源，或使用仓库内的 `pnpm-lock.yaml`。
-- **算法服务 `loaded: false`**：检查 `algorithm/.env` 是否存在、`FALL_MODEL_DIR` 是否指向 `models`、
-  `algorithm/models/models/checkpoints/best.pth` 是否在位。
+- **算法服务 `loaded: false`**：权重未放置。按 `algorithm/README.md` 第三节核对
+  `algorithm/models/yolo11n-pose-fallen.pt` 与
+  `algorithm/models/models/checkpoints/v2_hard_samples_20260903/last.pth` 是否在位，
+  或改用 `FALL_LSTM_CHECKPOINT=models/checkpoints/best.pth` 搭配 v1 权重。
 - **5173 打不开**：用 `http://localhost:5173`，不要用 `127.0.0.1`。
 
 ## 许可

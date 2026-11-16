@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "input_file": "sample.mp4",
+    "processing_date": "2026-11-16T21:30:00",
+    "model_version": "1.0",
+    "confidence_threshold": 0.4,
+    "video_fps": 24.164,
+    "video_duration": "00:01:04.766",
+    "total_frames": 1565,
+    "resolution": "2712x1220"
+  },
+  "events": [
+    {
+      "type": "fall",
+      "event_id": 1,
+      "track_id": 1,
+      "logical_person_id": 1,
+      "raw_track_ids": [
+        1
+      ],
+      "candidate_person_ids": [
+        3
+      ],
+      "target_status": "target_lost",
+      "start_frame": 76,
+      "end_frame": 781,
+      "timestamp_start": "00:00:03.145",
+      "timestamp_end": "00:00:32.321",
+      "confidence": 1.0
+    }
+  ],
+  "summary": {
+    "total_falls": 1,
+    "persons_tracked": 4,
+    "processing_time_seconds": 112.6,
+    "interrupted": false
+  }
+}

@@ -61,6 +61,18 @@ application-local.properties
 !frontend/public/videos/*.webm
 !frontend/public/videos/*.m4v
 
+# ===== 模型权重（体积大，不随仓库分发）=====
+# 需按 algorithm/README.md「三、权重文件」中的说明自行放置
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# ===== 本地备份 / 临时文件 =====
+.backup-*/
+*.bak
+*.orig
+
 # ===== 说明 =====
-# 模型权重（algorithm/models/**/*.pt、*.pth）需要随仓库分发，
-# 故此处不忽略 *.pt / *.pth；如后续改用 Git LFS，请在此追加对应规则。
+# 1. 权重与 .env 均不纳入版本库：clone 后请按 README 放置权重、复制 .env.example 为 .env。
+# 2. 示例事件 JSON（algorithm/models/output/test_events.json）为小文件，需要随仓库保留。

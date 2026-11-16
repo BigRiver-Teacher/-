@@ -72,7 +72,8 @@ class FallDetectionService:
             output_dir: 标注视频输出目录。
             max_workers: 异步任务线程数（检测为计算密集型，默认 1 串行）。
         """
-        self.model_dir = Path(model_dir)
+        # 解析为绝对路径：load() 会临时切换工作目录，相对路径会被二次解析而定位失败
+        self.model_dir = Path(model_dir).resolve()
         # 请求的 YOLO 权重：显式传入 > 环境变量 > 目录内 v2/v1 自动择优
         if not yolo_model:
             yolo_model = os.getenv("FALL_YOLO_MODEL") or self._default_yolo_name()
