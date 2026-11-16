@@ -1,0 +1,16 @@
+{
+  "$comment": "视频引用记录。path 一律为相对【项目根目录】的路径，禁止使用绝对路径；由 scripts/05-insert-video.mjs 维护，也可手工编辑。",
+  "publicDir": "frontend/public",
+  "slots": {
+    "monitor-1": {
+      "label": "监控1-演示",
+      "path": "frontend/public/videos/video1.mp4",
+      "updatedAt": "2026-11-16T11:31:26.590Z"
+    },
+    "monitor-2": {
+      "label": "监控2",
+      "path": "",
+      "updatedAt": "2026-11-16T11:31:20.198Z"
+    }
+  }
+}

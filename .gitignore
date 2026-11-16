@@ -1,0 +1,66 @@
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+dist-ssr/
+build/
+target/
+out/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# ===== IDE / 系统 =====
+.idea/
+.vscode/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 运行时数据与日志 =====
+logs/
+*.log
+uploads/
+outputs/
+algorithm/uploads/
+algorithm/outputs/
+*.tsbuildinfo
+.eslintcache
+
+# 训练/评测证据日志需随仓库保留
+!algorithm/model-v2-resources/evidence/*.log
+
+# ===== 本地配置（含凭证，禁止提交）=====
+.env
+.env.local
+.env.*.local
+application-local.properties
+*.local.properties
+
+# ===== 大体积媒体文件（演示视频等）=====
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.flv
+*.webm
+*.m4v
+# 例外：frontend/public/videos 下登记过的演示视频需要随仓库分发
+!frontend/public/videos/*.mp4
+!frontend/public/videos/*.webm
+!frontend/public/videos/*.m4v
+
+# ===== 说明 =====
+# 模型权重（algorithm/models/**/*.pt、*.pth）需要随仓库分发，
+# 故此处不忽略 *.pt / *.pth；如后续改用 Git LFS，请在此追加对应规则。

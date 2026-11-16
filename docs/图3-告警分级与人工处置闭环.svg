@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <rect width="1280" height="760" fill="#FFFFFF"/>
+  <!-- 标题 -->
+  <text x="640" y="52" text-anchor="middle" font-size="30" font-weight="bold" fill="#1F2A44">图3　告警分级与人工处置闭环（业务侧）</text>
+
+  <defs>
+    <marker id="arr3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748B"/>
+    </marker>
+  </defs>
+
+  <!-- 起始：告警入库 -->
+  <rect x="40" y="90" width="1200" height="80" rx="12" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
+  <text x="640" y="122" text-anchor="middle" font-size="21" font-weight="bold" fill="#1D4ED8">告警入库（承接 图2 的结构化事件，人工/管理端登记）</text>
+  <text x="640" y="152" text-anchor="middle" font-size="17" fill="#1E3A5F">类型：跌倒/异常步态/设备离线/紧急　|　级别：紧急/重要/普通　|　老人、位置、紧急联系人、建议措施</text>
+
+  <!-- 四、告警处置 -->
+  <rect x="40" y="210" width="360" height="170" rx="12" fill="#F0FDF4" stroke="#22C55E" stroke-width="2"/>
+  <text x="220" y="240" text-anchor="middle" font-size="20" font-weight="bold" fill="#15803D">一、告警处置</text>
+  <rect x="70" y="258" width="300" height="44" rx="8" fill="#FFFFFF" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="220" y="286" text-anchor="middle" font-size="17" fill="#1F2937">实时告警列表（筛选/刷新/统计）</text>
+  <rect x="70" y="312" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="220" y="334" text-anchor="middle" font-size="17" fill="#1F2937">人工处理 / 忽略 / 已读</text>
+  <text x="220" y="356" text-anchor="middle" font-size="15" fill="#64748B">「处理中」仅为台账状态</text>
+
+  <!-- 五、家属推送 -->
+  <rect x="460" y="210" width="360" height="170" rx="12" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <text x="640" y="240" text-anchor="middle" font-size="20" font-weight="bold" fill="#C2410C">二、家属推送</text>
+  <rect x="490" y="258" width="300" height="44" rx="8" fill="#FFFFFF" stroke="#FDBA74" stroke-width="1.5"/>
+  <text x="640" y="286" text-anchor="middle" font-size="17" fill="#1F2937">偏好过滤（渠道/级别/静音/延迟）</text>
+  <rect x="490" y="312" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#FDBA74" stroke-width="1.5"/>
+  <text x="640" y="334" text-anchor="middle" font-size="17" fill="#1F2937">执行与日志（短信/微信/APP）</text>
+  <text x="640" y="356" text-anchor="middle" font-size="15" fill="#64748B">失败可重试，全程留痕</text>
+
+  <!-- 六、社区联动审核 -->
+  <rect x="880" y="210" width="360" height="170" rx="12" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="2"/>
+  <text x="1060" y="240" text-anchor="middle" font-size="20" font-weight="bold" fill="#6D28D9">三、社区联动审核</text>
+  <rect x="910" y="258" width="300" height="44" rx="8" fill="#FFFFFF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="1060" y="286" text-anchor="middle" font-size="17" fill="#1F2937">社区处理台账（关联告警编号）</text>
+  <rect x="910" y="312" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="1060" y="334" text-anchor="middle" font-size="17" fill="#1F2937">审核：通过归档 / 驳回重提</text>
+  <text x="1060" y="356" text-anchor="middle" font-size="15" fill="#64748B">真正的人工复核环节</text>
+
+  <!-- 箭头 -->
+  <line x1="400" y1="295" x2="458" y2="295" stroke="#64748B" stroke-width="2.5" marker-end="url(#arr3)"/>
+  <line x1="820" y1="295" x2="878" y2="295" stroke="#64748B" stroke-width="2.5" marker-end="url(#arr3)"/>
+
+  <!-- 七、干预与档案回写 -->
+  <rect x="40" y="430" width="1200" height="150" rx="12" fill="#F8FAFC" stroke="#475569" stroke-width="2"/>
+  <text x="640" y="460" text-anchor="middle" font-size="20" font-weight="bold" fill="#334155">四、干预、日程、空间整改与档案回写</text>
+  <rect x="70" y="478" width="265" height="44" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="202" y="506" text-anchor="middle" font-size="17" fill="#1F2937">干预方案（审核执行）</text>
+  <rect x="355" y="478" width="265" height="44" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="487" y="506" text-anchor="middle" font-size="17" fill="#1F2937">康养日程（任务分派）</text>
+  <rect x="640" y="478" width="265" height="44" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="772" y="506" text-anchor="middle" font-size="17" fill="#1F2937">空间巡检与整改</text>
+  <rect x="925" y="478" width="265" height="44" rx="8" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="1057" y="506" text-anchor="middle" font-size="17" fill="#1F2937">档案回写（闭环）</text>
+  <text x="640" y="558" text-anchor="middle" font-size="15" fill="#64748B">G1–G5 均为管理端以关联告警编号人工登记，回写档案形成闭环，作为下一轮风险判断依据</text>
+
+  <!-- 闭合回路 -->
+  <path d="M 1057 580 L 1057 640 L 202 640 L 202 580" fill="none" stroke="#22C55E" stroke-width="2" stroke-dasharray="8,5" marker-end="url(#arr3)"/>
+  <text x="640" y="668" text-anchor="middle" font-size="16" fill="#15803D" font-weight="bold">档案回写 → 更新老人档案与台账 → 支撑下一轮风险判断（形成闭环）</text>
+
+  <!-- 底部说明 -->
+  <text x="640" y="720" text-anchor="middle" font-size="15" fill="#64748B">图3 承接图2 输出的结构化事件；算法事件写回告警为预留能力，当前由管理端人工登记</text>
+</svg>

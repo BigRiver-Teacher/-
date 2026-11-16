@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "input_file": "D:\\fall-detection-data\\user_videos\\03_\u8001\u4eba\u6d17\u8863\u670d\u53f0\u9636\u8dcc\u5012_v2.mp4",
+    "processing_date": "2026-09-04T21:17:57.536009",
+    "model_version": "1.0",
+    "confidence_threshold": 0.4,
+    "video_fps": 30.0,
+    "video_duration": "00:00:37.500",
+    "total_frames": 1125,
+    "resolution": "1280x720"
+  },
+  "events": [
+    {
+      "type": "fall",
+      "event_id": 1,
+      "track_id": 1,
+      "logical_person_id": 1,
+      "raw_track_ids": [
+        1
+      ],
+      "candidate_person_ids": [],
+      "target_status": "target_lost",
+      "start_frame": 40,
+      "end_frame": 42,
+      "timestamp_start": "00:00:01.333",
+      "timestamp_end": "00:00:01.400",
+      "confidence": 0.745
+    }
+  ],
+  "summary": {
+    "total_falls": 1,
+    "persons_tracked": 4,
+    "processing_time_seconds": 35.0,
+    "interrupted": false
+  }
+}

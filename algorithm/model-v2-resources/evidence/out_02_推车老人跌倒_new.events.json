@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "input_file": "D:\\fall-detection-data\\user_videos\\02_\u63a8\u8f66\u8001\u4eba\u8dcc\u5012_v2.mp4",
+    "processing_date": "2026-09-04T21:17:17.691761",
+    "model_version": "1.0",
+    "confidence_threshold": 0.4,
+    "video_fps": 24.0,
+    "video_duration": "00:00:06.042",
+    "total_frames": 145,
+    "resolution": "1920x864"
+  },
+  "events": [],
+  "summary": {
+    "total_falls": 0,
+    "persons_tracked": 2,
+    "processing_time_seconds": 7.3,
+    "interrupted": false
+  }
+}

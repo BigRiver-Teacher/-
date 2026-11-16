@@ -1,0 +1,17 @@
+# ============================================================
+# 本地覆盖示例（profile=local）
+# 用法：
+#   1) 复制为 application-local.properties
+#   2) 启动时加 --spring.profiles.active=local
+#      或设置环境变量 SPRING_PROFILES_ACTIVE=local
+# 该文件优先级高于 application.properties，适合放本地密码，勿提交。
+# ============================================================
+spring.datasource.url=jdbc:mysql://localhost:3306/elderly_care?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=123456
+
+# 如需改端口
+# server.port=8080
+
+# 如需降低日志级别
+# logging.level.com.example.elderly=INFO

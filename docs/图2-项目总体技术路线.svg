@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Microsoft YaHei, SimHei, sans-serif">
+  <rect width="1280" height="720" fill="#FFFFFF"/>
+  <!-- 标题 -->
+  <text x="640" y="52" text-anchor="middle" font-size="30" font-weight="bold" fill="#1F2A44">图2　项目总体技术路线（算法侧：单路视频跌倒检测）</text>
+
+  <!-- 阶段一 容器 -->
+  <rect x="40" y="90" width="360" height="180" rx="12" fill="#F0F5FF" stroke="#3B82F6" stroke-width="2"/>
+  <text x="220" y="120" text-anchor="middle" font-size="20" font-weight="bold" fill="#1D4ED8">一、视频接入与权重选择</text>
+  <rect x="70" y="140" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="220" y="172" text-anchor="middle" font-size="17" fill="#1F2937">B1 视频输入（上传/本地路径校验）</text>
+  <rect x="70" y="204" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="220" y="236" text-anchor="middle" font-size="17" fill="#1F2937">B4a 权重择优（v2 优先，缺失回退 v1）</text>
+
+  <!-- 阶段二 容器 -->
+  <rect x="440" y="90" width="360" height="180" rx="12" fill="#F0FDF4" stroke="#22C55E" stroke-width="2"/>
+  <text x="620" y="120" text-anchor="middle" font-size="20" font-weight="bold" fill="#15803D">二、跨帧跟踪与 LSTM 三分类</text>
+  <rect x="470" y="140" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="620" y="172" text-anchor="middle" font-size="17" fill="#1F2937">17 关键点 → 跨帧跟踪同一人</text>
+  <rect x="470" y="204" width="300" height="52" rx="8" fill="#FFFFFF" stroke="#86EFAC" stroke-width="1.5"/>
+  <text x="620" y="236" text-anchor="middle" font-size="17" fill="#1F2937">关键点特征 → LSTM 三分类</text>
+
+  <!-- 阶段三 容器 -->
+  <rect x="840" y="90" width="400" height="180" rx="12" fill="#FFF7ED" stroke="#F97316" stroke-width="2"/>
+  <text x="1040" y="120" text-anchor="middle" font-size="20" font-weight="bold" fill="#C2410C">三、结构化事件输出</text>
+  <rect x="870" y="140" width="340" height="52" rx="8" fill="#FFFFFF" stroke="#FDBA74" stroke-width="1.5"/>
+  <text x="1040" y="172" text-anchor="middle" font-size="17" fill="#1F2937">阈值 0.40 + 冷却 90 帧抑制重复</text>
+  <rect x="870" y="204" width="340" height="52" rx="8" fill="#FFFFFF" stroke="#FDBA74" stroke-width="1.5"/>
+  <text x="1040" y="236" text-anchor="middle" font-size="17" fill="#1F2937">事件 JSON + 标注视频（可复核）</text>
+
+  <!-- 箭头 -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748B"/>
+    </marker>
+  </defs>
+  <line x1="400" y1="180" x2="438" y2="180" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <line x1="800" y1="180" x2="838" y2="180" stroke="#64748B" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- 贯穿旁路 -->
+  <rect x="40" y="320" width="1200" height="120" rx="12" fill="#F5F3FF" stroke="#8B5CF6" stroke-width="2"/>
+  <text x="640" y="352" text-anchor="middle" font-size="20" font-weight="bold" fill="#6D28D9">贯穿旁路（任意时点触发，作用于上游）</text>
+  <rect x="120" y="372" width="430" height="48" rx="8" fill="#FFFFFF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="335" y="402" text-anchor="middle" font-size="17" fill="#1F2937">H1 模型参数版本治理（保存/恢复/回滚）</text>
+  <rect x="650" y="372" width="430" height="48" rx="8" fill="#FFFFFF" stroke="#C4B5FD" stroke-width="1.5"/>
+  <text x="865" y="402" text-anchor="middle" font-size="17" fill="#1F2937">H2 权重评测与切换依据（A/B 对比）</text>
+  <!-- 旁路虚线指向上方 -->
+  <line x1="335" y1="372" x2="220" y2="272" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+  <line x1="865" y1="372" x2="620" y2="272" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow)"/>
+
+  <!-- 降级模式说明 -->
+  <rect x="40" y="490" width="1200" height="90" rx="12" fill="#FEF2F2" stroke="#EF4444" stroke-width="2" stroke-dasharray="8,5"/>
+  <text x="640" y="525" text-anchor="middle" font-size="19" font-weight="bold" fill="#B91C1C">降级模式（模型工程缺失时）</text>
+  <text x="640" y="558" text-anchor="middle" font-size="17" fill="#7F1D1D">服务仍可启动、健康检查与模型状态可查；推理返回明确的"模型文件缺失"错误，不产生事件与告警</text>
+
+  <!-- 底部衔接提示 -->
+  <rect x="340" y="620" width="600" height="60" rx="30" fill="#1F2A44"/>
+  <text x="640" y="652" text-anchor="middle" font-size="19" fill="#FFFFFF">输出「结构化事件 JSON」→ 接入业务告警处置（见 图3）</text>
+</svg>
