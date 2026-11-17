@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "input_file": "D:\\fall-detection-data\\user_videos\\03_\u8001\u4eba\u6d17\u8863\u670d\u53f0\u9636\u8dcc\u5012_v2.mp4",
+    "input_file": "03_\u8001\u4eba\u6d17\u8863\u670d\u53f0\u9636\u8dcc\u5012_v2.mp4",
     "processing_date": "2026-09-04T21:17:57.536009",
     "model_version": "1.0",
     "confidence_threshold": 0.4,

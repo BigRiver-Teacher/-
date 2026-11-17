@@ -1,7 +1,7 @@
 task: pose
 mode: train
-model: D:/fall-detection-data/weights/yolo11n-pose.pt
-data: D:/fall-detection-data/Simuletic_Person/data.yaml
+model: ../fall-detection-data/weights/yolo11n-pose.pt
+data: ../fall-detection-data/Simuletic_Person/data.yaml
 epochs: 60
 time: null
 patience: 100
@@ -12,7 +12,7 @@ save_period: -1
 cache: false
 device: '0'
 workers: 0
-project: D:/fall-detection-data/runs
+project: ../fall-detection-data/runs
 name: yolo11n-pose-fallen
 exist_ok: true
 pretrained: true
@@ -109,4 +109,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: tracktrack.yaml
-save_dir: D:\fall-detection-data\runs\yolo11n-pose-fallen
+save_dir: ../fall-detection-data/runs/yolo11n-pose-fallen

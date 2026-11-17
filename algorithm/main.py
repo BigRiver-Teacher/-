@@ -39,7 +39,7 @@ def build_service() -> FallDetectionService:
     """根据环境变量构造摔倒检测服务实例。"""
     model_dir = os.getenv(
         "FALL_MODEL_DIR",
-        "D:/fall-detection-vison-flat-delivery-20260829/fall-detection-vison-flat-delivery-20260829",
+        "models",
     )
     return FallDetectionService(
         model_dir=model_dir,

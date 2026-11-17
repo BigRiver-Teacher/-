@@ -1,6 +1,6 @@
 # 姿态模型改进版（v2）资源说明
 
-> 来源：算法组交付包 D:\fall-detection-data.zip（完整包已解压至 D:\fall-detection-data，约 445MB，含训练数据集与场景视频，供复现）。
+> 来源：算法组交付包 `fall-detection-data.zip`（完整包约 445MB，含训练数据集与场景视频，供复现；解压目录默认约定为仓库上级的 `../fall-detection-data`，也可用环境变量 `FALL_TRAIN_DATA_ROOT` 指定）。
 > 本目录仅收录推理与验证所需精选资源。
 
 ## 目录
@@ -24,4 +24,4 @@
 ## 接入与回退
 - 启用：复制权重至模型工程根目录后，设置 FALL_YOLO_MODEL=yolo11n-pose-fallen.pt（跌倒服务 .env / .env.example 已默认指向 v2）
 - 回退：FALL_YOLO_MODEL=yolo11n-pose.pt
-- 完整算法交付包（训练数据集 CCTV / Simuletic 等）位于 D:\fall-detection-data
+- 完整算法交付包（训练数据集 CCTV / Simuletic 等）默认位于 `../fall-detection-data`（可用环境变量 `FALL_TRAIN_DATA_ROOT` 覆盖）

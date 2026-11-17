@@ -2,6 +2,8 @@
 
 面向居家与社区养老场景的安全监护平台：通过姿态估计 + 跨帧跟踪 + 时序分类识别跌倒，联动告警推送、家属/社区处置与健康档案管理。
 
+> ⚠️ **免责声明**：本项目提供的数据库演示数据均为虚构，仅用于功能测试。
+
 | 模块 | 技术栈 | 端口 | 说明 |
 | --- | --- | --- | --- |
 | 前端 | Vue 3 + TypeScript + Vite + Element Plus + ECharts + Pinia | 5173 | 管理端界面、监控大屏、业务交互 |
@@ -82,7 +84,21 @@ mysql -uroot -p --default-character-set=utf8mb4 -e "source backend/src/main/reso
 
 ### 第 1 步：启动后端
 
+> ⚠️ **启动前必须配置环境变量**（代码已移除默认密码，未配置将启动报错）：
+>
+> | 环境变量 | 必填 | 说明 |
+> | --- | --- | --- |
+> | `DB_PASSWORD` | ✅ | 数据库密码，无默认值 |
+> | `JWT_SECRET` | ✅ | JWT 签名密钥，**长度至少 32 位**，否则启动时 `JwtUtil` 直接抛异常 |
+
 ```bash
+# Linux / macOS
+export DB_PASSWORD=你的数据库密码
+export JWT_SECRET=$(head -c 48 /dev/urandom | base64)   # 生成 ≥32 位的随机密钥
+# Windows (PowerShell)
+$env:DB_PASSWORD="你的数据库密码"
+$env:JWT_SECRET="请填写至少32位的随机字符串"
+
 cd backend
 mvn -DskipTests package
 java -jar target/javapratice-0.0.1-SNAPSHOT.jar
@@ -115,9 +131,14 @@ python main.py
 验证：`http://127.0.0.1:8001/api/fall-detection/health`，模型加载成功时返回 `loaded: true`。
 接口文档：`http://127.0.0.1:8001/docs`。
 
-> 推理代码已内置在 `algorithm/models/`，但**权重文件不入库**：需按 `algorithm/README.md`
-> 第三节把 `yolo11n-pose-fallen.pt` 与 LSTM 检查点放到指定路径。未放置时服务仍可启动，
-> `/health` 返回 `loaded: false` 并给出缺失路径。
+> ⚠️ **【重要】权重文件放置步骤（必须执行，否则算法无法工作）**：
+> 推理代码已内置在 `algorithm/models/`，但**权重文件不入库**。clone 后必须按
+> `algorithm/README.md` 第三节把以下权重放到指定路径，否则 `/health` 返回 `loaded: false`：
+> - `algorithm/models/yolo11n-pose-fallen.pt`（YOLO 姿态权重，约 5.9 MB）
+> - `algorithm/models/models/checkpoints/v2_hard_samples_20260903/last.pth`（LSTM v2 检查点，约 2.4 MB）
+>
+> 权重文件需由项目作者通过微信/网盘单独发送，见文末「需要单独发送的文件清单」。
+> 未放置时服务仍可启动，但 `/health` 返回 `loaded: false` 并给出缺失路径。
 
 ### 第 4 步：自检
 
@@ -147,7 +168,7 @@ scripts\99-verify.bat
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `FALL_MODEL_DIR` | `models` | 模型工程根目录（相对 `algorithm/`） |
+| `FALL_MODEL_DIR` | `models` | 模型工程根目录。**必须设置为绝对路径**（如 `D:/GitHub/zhaoxi-huxing/algorithm/models`），未使用绝对路径会导致权重加载失败 |
 | `FALL_YOLO_MODEL` | `yolo11n-pose-fallen.pt` | 姿态权重，缺失自动回退 `yolo11n-pose.pt` |
 | `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | v2 八特征二分类；改 `models/checkpoints/best.pth` 即回退 v1 三分类 |
 | `FALL_TRACKER_CONFIG` | `configs/botsort.yaml` | BoT-SORT 跟踪器配置 |
@@ -223,6 +244,19 @@ Windows 下也可双击运行 `scripts\05-insert-video.bat`（参数同上）。
   `algorithm/models/models/checkpoints/v2_hard_samples_20260903/last.pth` 是否在位，
   或改用 `FALL_LSTM_CHECKPOINT=models/checkpoints/best.pth` 搭配 v1 权重。
 - **5173 打不开**：用 `http://localhost:5173`，不要用 `127.0.0.1`。
+
+## 需要单独发送的文件清单（模型/权重）
+
+以下文件因体积大或涉及第三方数据，**不随 Git 仓库分发**。克隆代码后，需由项目作者通过微信/网盘单独发送，并按「应放入的相对目录」放置：
+
+| 文件 | 当前路径（本机） | 应放入的项目相对目录 | 用途 |
+| --- | --- | --- | --- |
+| `yolo11n-pose-fallen.pt` | `algorithm/model-v2-resources/weights/yolo11n-pose-fallen.pt` | `algorithm/models/yolo11n-pose-fallen.pt` | YOLO 姿态估计权重（v2，躺地人体微调，约 5.9 MB） |
+| `last.pth`（v2 LSTM） | `algorithm/models/models/checkpoints/v2_hard_samples_20260903/last.pth` | `algorithm/models/models/checkpoints/v2_hard_samples_20260903/last.pth` | LSTM 分类器检查点（8 特征二分类，约 2.4 MB） |
+| `best.pth`（v1 LSTM，可选） | `algorithm/models/models/checkpoints/best.pth` | `algorithm/models/models/checkpoints/best.pth` | LSTM v1 检查点（5 特征三分类，用于回退对照，约 792 KB） |
+| `yolo11n-pose.pt`（v1，可选） | 待确认 | `algorithm/models/yolo11n-pose.pt` | 官方基础姿态权重，作为 v2 缺失时的回退 |
+
+> 权重文件校验：`yolo11n-pose-fallen.pt` 的 MD5 为 `6a6394629424bcb72a7e20596c07bb9d`，放置后可据此核对。
 
 ## 许可
 

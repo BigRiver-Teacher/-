@@ -47,7 +47,7 @@ class FallDetectionService:
 
     def __init__(
         self,
-        model_dir: str = "D:/fall-detection-vison-flat-delivery-20260829/fall-detection-vison-flat-delivery-20260829",
+        model_dir: str = "models",
         yolo_model: Optional[str] = None,
         lstm_checkpoint: str = "models/checkpoints/best.pth",
         device: Optional[str] = None,

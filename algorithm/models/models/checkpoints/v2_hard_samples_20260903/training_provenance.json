@@ -5,7 +5,7 @@
     "normal",
     "fallen"
   ],
-  "bundle": "D:\\My_Grand_Projects2026\\fall-detection\\fall-detection-vison-results\\refined_v2_20260829\\老人摔倒的第二个数据视频\\annotations\\v2_hard_samples_20260902_0_to_40s",
+  "bundle": "<training-data-root>/annotations/v2_hard_samples_20260902_0_to_40s",
   "bundle_hashes": {
     "X.npy": "DC638035D4EA5567A223FE4773AB9F26D07A7B632BB8DFD5F0CE63EFD4C1D300",
     "y.npy": "FC8E04E51F46C9E4D40AEE95AFB251D8DE5A489528C2316A5DB9902B7751A641",

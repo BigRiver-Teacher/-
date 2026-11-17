@@ -3,13 +3,18 @@
 Keeps the COCO 17-keypoint layout so the existing pipeline keeps working, but
 teaches the model that a person lying on the ground is still a valid detection.
 """
+import os
+
 from ultralytics import YOLO
 
 
 def main() -> None:
-    model = YOLO("D:/fall-detection-data/weights/yolo11n-pose.pt")
+    # 数据根目录：优先从环境变量读取，未设置时按“数据包解压在本仓库上级”的相对路径推断
+    data_root = os.getenv("FALL_TRAIN_DATA_ROOT", "../fall-detection-data")
+
+    model = YOLO(f"{data_root}/weights/yolo11n-pose.pt")
     results = model.train(
-        data="D:/fall-detection-data/Simuletic_Person/data.yaml",
+        data=f"{data_root}/Simuletic_Person/data.yaml",
         epochs=60,
         imgsz=1024,
         batch=8,
@@ -20,7 +25,7 @@ def main() -> None:
         workers=0,          # avoid Windows spawn multiprocessing issues
         device=0,
         seed=20260904,
-        project="D:/fall-detection-data/runs",
+        project=f"{data_root}/runs",
         name="yolo11n-pose-fallen",
         exist_ok=True,
         verbose=True,

@@ -14,6 +14,7 @@ import com.example.elderly.vo.PageVO;
 import com.example.elderly.vo.UserInfoVO;
 import com.example.elderly.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.util.DigestUtils;
@@ -25,6 +26,10 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+
+    /** 重置后的默认密码（仅用于演示环境，生产请通过环境变量 APP_RESET_PASSWORD 覆盖）。 */
+    @Value("${app.user.reset-password:123456}")
+    private String resetPassword;
 
     @Override
     public Result<UserInfoVO> getProfile() {
@@ -142,9 +147,9 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             return Result.fail(404, "用户不存在");
         }
-        String initPassword = DigestUtils.md5DigestAsHex("123456".getBytes());
+        String initPassword = DigestUtils.md5DigestAsHex(resetPassword.getBytes());
         user.setPassword(initPassword);
         userMapper.updateById(user);
-        return Result.success("密码重置成功，新密码为：123456");
+        return Result.success("密码重置成功，新密码为：" + resetPassword);
     }
 }

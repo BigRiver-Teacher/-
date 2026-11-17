@@ -2,6 +2,12 @@
 -- 智慧养老系统 (Elderly Care) 测试数据填充脚本
 -- 每个表 2-3 条数据，字段与实体类/前端 TS 类型保持一致
 -- 使用方式: 先在 init.sql 建库和表，再执行本脚本
+--
+-- 【重要声明】本文件所有数据均为虚构演示数据：
+--   * 姓名、身份证号、电话、地址、机构名均为编造，不指向任何真实个人或机构；
+--   * 身份证号后四位已统一置为 0000（校验位无效），仅保留出生日期用于年龄演示；
+--   * 医疗机构名称已替换为「示例市XX医院」等通用虚构名。
+--   严禁将本文件数据用于任何真实业务或对外发布。
 -- =====================================================
 
 USE elderly_care;
@@ -20,12 +26,12 @@ VALUES
 -- =====================================================
 INSERT INTO `elder` (`name`, `gender`, `age`, `id_card`, `birth_date`, `ethnicity`, `phone`, `address`, `residence_type`, `remark`, `device_bound`, `create_time`)
 VALUES
-('张建国', 'MALE',   78, '110101194505123456', '1945-05-12', '汉族', '13900001111', '北京市朝阳区朝阳路3栋501室', 'PERMANENT', '高血压、冠心病史，需定期测量血压', 1, DATE_SUB(NOW(), INTERVAL 200 DAY)),
-('李秀英', 'FEMALE', 82, '110101194208202345', '1942-08-20', '汉族', '13900002222', '北京市朝阳区朝阳路3栋502室', 'PERMANENT', '轻度认知障碍，需要日常陪护', 1, DATE_SUB(NOW(), INTERVAL 180 DAY)),
-('王德发', 'MALE',   75, '110101194903081234', '1949-03-08', '汉族', '13900003333', '北京市海淀区学院路8号', 'PERMANENT', '2型糖尿病史，需严格控制饮食', 0, DATE_SUB(NOW(), INTERVAL 160 DAY)),
-('赵玉兰', 'FEMALE', 85, '110101193903154567', '1939-03-15', '汉族', '13900004444', '北京市西城区XX胡同12号', 'PERMANENT', '高血压、糖尿病史，行动不便', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
-('刘德胜', 'MALE',   71, '110101195311024578', '1953-11-02', '汉族', '13900005555', '北京市海淀区XX小区4栋502', 'PERMANENT', '轻度认知障碍，需防走失', 1, DATE_SUB(NOW(), INTERVAL 100 DAY)),
-('陈阿妹', 'FEMALE', 92, '110101193207286789', '1932-07-28', '壮族', '13900006666', '北京市丰台区XX街道8号', 'PERMANENT', '行动不便，需轮椅辅助', 0, DATE_SUB(NOW(), INTERVAL 180 DAY));
+('张建国', 'MALE',   78, '110101194505120000', '1945-05-12', '汉族', '13900001111', '北京市朝阳区朝阳路3栋501室', 'PERMANENT', '高血压、冠心病史，需定期测量血压', 1, DATE_SUB(NOW(), INTERVAL 200 DAY)),
+('李秀英', 'FEMALE', 82, '110101194208200000', '1942-08-20', '汉族', '13900002222', '北京市朝阳区朝阳路3栋502室', 'PERMANENT', '轻度认知障碍，需要日常陪护', 1, DATE_SUB(NOW(), INTERVAL 180 DAY)),
+('王德发', 'MALE',   75, '110101194903080000', '1949-03-08', '汉族', '13900003333', '北京市海淀区学院路8号', 'PERMANENT', '2型糖尿病史，需严格控制饮食', 0, DATE_SUB(NOW(), INTERVAL 160 DAY)),
+('赵玉兰', 'FEMALE', 85, '110101193903150000', '1939-03-15', '汉族', '13900004444', '北京市西城区XX胡同12号', 'PERMANENT', '高血压、糖尿病史，行动不便', 1, DATE_SUB(NOW(), INTERVAL 120 DAY)),
+('刘德胜', 'MALE',   71, '110101195311020000', '1953-11-02', '汉族', '13900005555', '北京市海淀区XX小区4栋502', 'PERMANENT', '轻度认知障碍，需防走失', 1, DATE_SUB(NOW(), INTERVAL 100 DAY)),
+('陈阿妹', 'FEMALE', 92, '110101193207280000', '1932-07-28', '壮族', '13900006666', '北京市丰台区XX街道8号', 'PERMANENT', '行动不便，需轮椅辅助', 0, DATE_SUB(NOW(), INTERVAL 180 DAY));
 
 -- =====================================================
 -- 3. 告警表 (alert) — 3 条
@@ -62,9 +68,9 @@ VALUES
 -- =====================================================
 INSERT INTO `expert` (`name`, `title`, `specialty`, `institution`, `phone`, `status`, `today_count`, `total_count`, `rating`, `schedule`, `create_time`)
 VALUES
-('陈伟明', '主任医师', '老年心血管疾病', '北京协和医院', '13800010001', 'ACTIVE', 3, 156, 4.85, '{"mon":"AM","wed":"PM","fri":"AM"}', DATE_SUB(NOW(), INTERVAL 400 DAY)),
-('林美丽', '副主任医师', '老年神经系统疾病', '北京大学第三医院', '13800010002', 'ACTIVE', 1, 98, 4.62, '{"tue":"FULL","thu":"FULL"}', DATE_SUB(NOW(), INTERVAL 300 DAY)),
-('黄志强', '教授', '老年骨科与康复医学', '首都医科大学附属北京朝阳医院', '13800010003', 'ACTIVE', 0, 72, 4.91, '{"mon":"PM","wed":"AM","sat":"AM"}', DATE_SUB(NOW(), INTERVAL 250 DAY));
+('陈伟明', '主任医师', '老年心血管疾病', '示例市第一人民医院', '13800010001', 'ACTIVE', 3, 156, 4.85, '{"mon":"AM","wed":"PM","fri":"AM"}', DATE_SUB(NOW(), INTERVAL 400 DAY)),
+('林美丽', '副主任医师', '老年神经系统疾病', '示例市第二人民医院', '13800010002', 'ACTIVE', 1, 98, 4.62, '{"tue":"FULL","thu":"FULL"}', DATE_SUB(NOW(), INTERVAL 300 DAY)),
+('黄志强', '教授', '老年骨科与康复医学', '示例市康复中心医院', '13800010003', 'ACTIVE', 0, 72, 4.91, '{"mon":"PM","wed":"AM","sat":"AM"}', DATE_SUB(NOW(), INTERVAL 250 DAY));
 
 -- =====================================================
 -- 7. 咨询表 (consult) — 3 条
@@ -329,8 +335,8 @@ INSERT INTO \`alert\` (\`elder_name\`, \`elder_id\`, \`alert_type\`, \`level\`, 
 
 -- 补充老人（人员统计更丰满）
 INSERT INTO \`elder\` (\`name\`, \`gender\`, \`age\`, \`id_card\`, \`birth_date\`, \`ethnicity\`, \`phone\`, \`address\`, \`residence_type\`, \`remark\`, \`device_bound\`, \`create_time\`) VALUES
-('钱淑珍', 'FEMALE', 79, '110101194704012367', '1947-04-01', '汉族', '13900007777', '北京市东城区XX胡同5号', 'ALONE', '高血压史，每日需服药', 0, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-('孙启明', 'MALE', 83, '110101194310252468', '1943-10-25', '汉族', '13900008888', '北京市朝阳区幸福小区8栋', 'WITH_FAMILY', '慢阻肺，注意保暖防感冒', 0, DATE_SUB(NOW(), INTERVAL 5 DAY));
+('钱淑珍', 'FEMALE', 79, '110101194704010000', '1947-04-01', '汉族', '13900007777', '北京市东城区XX胡同5号', 'ALONE', '高血压史，每日需服药', 0, DATE_SUB(NOW(), INTERVAL 30 DAY)),
+('孙启明', 'MALE', 83, '110101194310250000', '1943-10-25', '汉族', '13900008888', '北京市朝阳区幸福小区8栋', 'WITH_FAMILY', '慢阻肺，注意保暖防感冒', 0, DATE_SUB(NOW(), INTERVAL 5 DAY));
 
 -- 补充健康记录
 INSERT INTO \`health_note\` (\`elder_id\`, \`elder_name\`, \`record_time\`, \`recorder\`, \`note_type\`, \`content\`, \`importance\`, \`fallow_status\`, \`create_time\`) VALUES
@@ -341,22 +347,22 @@ INSERT INTO \`health_note\` (\`elder_id\`, \`elder_name\`, \`record_time\`, \`re
 -- 28. 大屏可视化数据补充（服务人员/专家/步态/咨询/老人，各图表 7 项左右）
 -- =====================================================
 INSERT INTO \`expert\` (\`name\`, \`title\`, \`specialty\`, \`institution\`, \`phone\`, \`status\`, \`today_count\`, \`total_count\`, \`rating\`, \`schedule\`, \`create_time\`) VALUES
-('王志远', '主治医师', '老年呼吸系统疾病', '北京朝阳医院', '13800010004', 'ACTIVE', 2, 88, 4.55, '{"mon":"AM","thu":"PM"}', DATE_SUB(NOW(), INTERVAL 200 DAY)),
-('刘慧敏', '主任医师', '老年糖尿病管理', '北京友谊医院', '13800010005', 'ACTIVE', 1, 112, 4.70, '{"tue":"AM","fri":"FULL"}', DATE_SUB(NOW(), INTERVAL 260 DAY)),
-('赵国庆', '副主任医师', '老年康复医学', '北京康复医院', '13800010006', 'ACTIVE', 0, 66, 4.48, '{"wed":"FULL"}', DATE_SUB(NOW(), INTERVAL 150 DAY)),
-('孙丽华', '教授', '老年营养学', '中国医学科学院', '13800010007', 'ACTIVE', 1, 54, 4.60, '{"sat":"AM"}', DATE_SUB(NOW(), INTERVAL 120 DAY));
+('王志远', '主治医师', '老年呼吸系统疾病', '示例市康复中心医院', '13800010004', 'ACTIVE', 2, 88, 4.55, '{"mon":"AM","thu":"PM"}', DATE_SUB(NOW(), INTERVAL 200 DAY)),
+('刘慧敏', '主任医师', '老年糖尿病管理', '示例市中心医院', '13800010005', 'ACTIVE', 1, 112, 4.70, '{"tue":"AM","fri":"FULL"}', DATE_SUB(NOW(), INTERVAL 260 DAY)),
+('赵国庆', '副主任医师', '老年康复医学', '示例市康复医院', '13800010006', 'ACTIVE', 0, 66, 4.48, '{"wed":"FULL"}', DATE_SUB(NOW(), INTERVAL 150 DAY)),
+('孙丽华', '教授', '老年营养学', '示例市医学研究院', '13800010007', 'ACTIVE', 1, 54, 4.60, '{"sat":"AM"}', DATE_SUB(NOW(), INTERVAL 120 DAY));
 INSERT INTO \`caregiver\` (\`name\`, \`age\`, \`position\`, \`phone\`, \`address\`, \`status\`, \`create_time\`) VALUES
 ('冯丽丽', 32, 'REHAB_NURSE', '13800006666', '北京市东城区XX路10号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 180 DAY)),
 ('何晓燕', 40, 'PSYCHO_COUNSELOR', '13800006667', '北京市西城区XX小区3栋', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 120 DAY)),
 ('陈志强', 50, 'NURSING_SUPERVISOR', '13800006668', '北京市海淀区XX路8号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 300 DAY)),
 ('徐丽萍', 29, 'CAREGIVER', '13800006669', '北京市丰台区XX街道6号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 90 DAY));
 INSERT INTO \`elder\` (\`name\`, \`gender\`, \`age\`, \`id_card\`, \`birth_date\`, \`ethnicity\`, \`phone\`, \`address\`, \`residence_type\`, \`remark\`, \`device_bound\`, \`create_time\`) VALUES
-('周秀兰', 'FEMALE', 62, '110101196210012369', '1962-10-01', '汉族', '13900009901', '北京市朝阳区A小区', 'ALONE', '健康状况良好', 0, DATE_SUB(NOW(), INTERVAL 60 DAY)),
-('吴建国', 'MALE', 67, '110101195705022470', '1957-05-02', '汉族', '13900009902', '北京市海淀区B小区', 'WITH_FAMILY', '轻度高血压', 0, DATE_SUB(NOW(), INTERVAL 50 DAY)),
-('郑淑英', 'FEMALE', 72, '110101195212032471', '1952-12-03', '汉族', '13900009903', '北京市西城区C小区', 'ALONE', '冠心病史', 1, DATE_SUB(NOW(), INTERVAL 40 DAY)),
-('冯德昌', 'MALE', 77, '110101194701042472', '1947-01-04', '汉族', '13900009904', '北京市丰台区D小区', 'WITH_FAMILY', '2型糖尿病', 1, DATE_SUB(NOW(), INTERVAL 30 DAY)),
-('蒋玉兰', 'FEMALE', 86, '110101193803052473', '1938-03-05', '汉族', '13900009905', '北京市东城区E小区', 'ALONE', '行动不便', 1, DATE_SUB(NOW(), INTERVAL 20 DAY)),
-('沈国华', 'MALE', 89, '110101193506062474', '1935-06-06', '汉族', '13900009906', '北京市朝阳区F小区', 'NURSING_HOME', '长期卧床', 0, DATE_SUB(NOW(), INTERVAL 10 DAY));
+('周秀兰', 'FEMALE', 62, '110101196210010000', '1962-10-01', '汉族', '13900009901', '北京市朝阳区A小区', 'ALONE', '健康状况良好', 0, DATE_SUB(NOW(), INTERVAL 60 DAY)),
+('吴建国', 'MALE', 67, '110101195705020000', '1957-05-02', '汉族', '13900009902', '北京市海淀区B小区', 'WITH_FAMILY', '轻度高血压', 0, DATE_SUB(NOW(), INTERVAL 50 DAY)),
+('郑淑英', 'FEMALE', 72, '110101195212030000', '1952-12-03', '汉族', '13900009903', '北京市西城区C小区', 'ALONE', '冠心病史', 1, DATE_SUB(NOW(), INTERVAL 40 DAY)),
+('冯德昌', 'MALE', 77, '110101194701040000', '1947-01-04', '汉族', '13900009904', '北京市丰台区D小区', 'WITH_FAMILY', '2型糖尿病', 1, DATE_SUB(NOW(), INTERVAL 30 DAY)),
+('蒋玉兰', 'FEMALE', 86, '110101193803050000', '1938-03-05', '汉族', '13900009905', '北京市东城区E小区', 'ALONE', '行动不便', 1, DATE_SUB(NOW(), INTERVAL 20 DAY)),
+('沈国华', 'MALE', 89, '110101193506060000', '1935-06-06', '汉族', '13900009906', '北京市朝阳区F小区', 'NURSING_HOME', '长期卧床', 0, DATE_SUB(NOW(), INTERVAL 10 DAY));
 INSERT INTO \`consult\` (\`elder_name\`, \`type\`, \`expert_id\`, \`expert_name\`, \`status\`, \`urgency\`, \`consult_time\`, \`content\`, \`reply\`, \`rating\`, \`feedback\`, \`create_time\`) VALUES
 ('周秀兰', '健康咨询', 5, '刘慧敏', 'completed', 'normal', DATE_SUB(NOW(), INTERVAL 5 DAY), '血糖控制咨询', '建议低糖饮食并每日监测', 4, '有帮助', DATE_SUB(NOW(), INTERVAL 5 DAY)),
 ('吴建国', '康复建议', 6, '赵国庆', 'completed', 'normal', DATE_SUB(NOW(), INTERVAL 6 DAY), '肩部康复训练咨询', '建议每日肩部拉伸', 5, '很好', DATE_SUB(NOW(), INTERVAL 6 DAY)),
