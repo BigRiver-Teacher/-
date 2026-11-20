@@ -18,9 +18,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
 
+from datetime import datetime
+
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from fall_detection_routes import router as fall_detection_router
 from fall_detection_service import FallDetectionService
@@ -41,10 +46,18 @@ def build_service() -> FallDetectionService:
         "FALL_MODEL_DIR",
         "models",
     )
+    # 默认检查点为 v2（八特征二分类）；v2 缺失时自动回退 v1 best.pth，保持开箱可用
+    lstm_default = "models/checkpoints/v2_hard_samples_20260903/last.pth"
+    lstm_ckpt = os.getenv("FALL_LSTM_CHECKPOINT") or lstm_default
+    if lstm_ckpt == lstm_default:
+        v1_path = Path(model_dir) / "models/checkpoints/best.pth"
+        if not (Path(model_dir) / lstm_default).exists() and v1_path.exists():
+            logger.warning("v2 检查点缺失，已回退使用 v1 检查点 %s", v1_path)
+            lstm_ckpt = "models/checkpoints/best.pth"
     return FallDetectionService(
         model_dir=model_dir,
         yolo_model=os.getenv("FALL_YOLO_MODEL", "yolo11n-pose-fallen.pt"),
-        lstm_checkpoint=os.getenv("FALL_LSTM_CHECKPOINT", "models/checkpoints/best.pth"),
+        lstm_checkpoint=lstm_ckpt,
         device=os.getenv("FALL_DEVICE") or None,
         confidence_threshold=float(os.getenv("FALL_CONFIDENCE_THRESHOLD", "0.40")),
         cooldown_frames=int(os.getenv("FALL_COOLDOWN_FRAMES", "90")),
@@ -74,6 +87,34 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("摔倒检测服务已退出")
 
 
+def _result(code: int, message: str, data=None) -> dict:
+    """与后端一致的统一响应结构。"""
+    return {
+        "code": code,
+        "message": message,
+        "data": data,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+# 阶段3：算法接口鉴权中间件。
+# FALL_API_KEY 未配置时不启用鉴权（保持本地演示零配置可用）；配置后除 /health 与文档外均需 X-API-Key。
+class ApiKeyAuthMiddleware(BaseHTTPMiddleware):
+    PUBLIC_PATHS = ("/", "/health", "/api/fall-detection/health", "/docs", "/redoc", "/openapi.json")
+
+    async def dispatch(self, request: Request, call_next):
+        api_key = os.getenv("FALL_API_KEY", "").strip()
+        path = request.url.path
+        if api_key and path not in self.PUBLIC_PATHS and not path.startswith("/docs"):
+            supplied = request.headers.get("X-API-Key", "")
+            if supplied != api_key:
+                return JSONResponse(
+                    status_code=401,
+                    content=_result(401, "无效的 API Key"),
+                )
+        return await call_next(request)
+
+
 # 创建应用
 app = FastAPI(
     title="朝夕护行 · 摔倒检测服务",
@@ -82,6 +123,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# 阶段3：接口鉴权。先于 CORS 添加，使其位于中间件栈内层
+# （CORS 后添加成为最外层，保证 401 响应同样带 CORS 头）。
+app.add_middleware(ApiKeyAuthMiddleware)
 
 # CORS：允许前端（Vue dev server 及生产域名）跨域调用
 app.add_middleware(
@@ -94,6 +139,40 @@ app.add_middleware(
 
 # 挂载摔倒检测路由
 app.include_router(fall_detection_router)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """把 FastAPI 默认 {"detail": ...} 改为统一响应体，且对 5xx 隐藏内部细节。"""
+    status = exc.status_code
+    if status >= 500:
+        message = str(exc.detail)
+        # 阶段2：不回显服务器绝对路径、堆栈等内部信息
+        for marker in ("D:", "E:", "/home/", "/Users/", "Traceback"):
+            if marker in message:
+                message = "服务内部错误，请联系管理员"
+                break
+    else:
+        message = str(exc.detail)
+    return JSONResponse(status_code=status, content=_result(status, message))
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """参数错误统一 HTTP 400，避免默认 422 且与后端约定一致。"""
+    errors = exc.errors()
+    names = [".".join(str(p) for p in e.get("loc", [])[1:]) or "参数" for e in errors]
+    return JSONResponse(
+        status_code=400,
+        content=_result(400, "参数格式不正确: " + ", ".join(sorted(set(names))[:5])),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """兜底异常：仅记录日志，响应不暴露内部实现。"""
+    logger.exception("未处理异常: %s", exc)
+    return JSONResponse(status_code=500, content=_result(500, "服务内部错误，请联系管理员"))
 
 
 @app.get("/", summary="服务信息")

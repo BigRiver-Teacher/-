@@ -14,8 +14,9 @@ export interface NotificationVO {
 
 // ===== 通知列表（分页） =====
 export function getNotificationList(params: {
-  pageNum?: number
-  pageSize?: number
+  // 阶段2：统一为 page/size；后端兼容 pageNum/pageSize 与 current 别名
+  page?: number
+  size?: number
 }) {
   return request.get<Result<PageVO<NotificationVO>>>('/notification/list', {
     params,

@@ -395,7 +395,7 @@ onMounted(async () => {
     userStore.fetchUserInfo(),
     statsStore.fetchManagementStats(),
     statsStore.fetchDeviceTrends(),
-    notificationStore.fetchNotifications({ pageNum: 1, pageSize: 10 }),
+    notificationStore.fetchNotifications({ page: 1, size: 10 }),
   ])
   await nextTick(() => initCharts())
   window.addEventListener('resize', resizeCharts, { passive: true } as AddEventListenerOptions)

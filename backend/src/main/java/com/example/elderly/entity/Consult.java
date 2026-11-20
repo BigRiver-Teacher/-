@@ -17,6 +17,8 @@ public class Consult {
     @NotBlank(message ="老人姓名不能为空")
     @Schema(description = "老人姓名")
     private String elderName;
+    @Schema(description = "老人ID")
+    private Long elderId;
     @NotBlank(message ="咨询类型不能为空")
     @Schema(description = "咨询类型")
     private String type;
@@ -24,6 +26,8 @@ public class Consult {
     private Long expertId;
     @Schema(description = "专家姓名")
     private String expertName;
+    @Schema(description = "关联会话ID(conversation.id)")
+    private Long conversationId;
     private String status;
     @Schema(description = "紧急程度")
     private String urgency;
@@ -38,6 +42,8 @@ public class Consult {
     private Integer rating;
     @Schema(description = "反馈")
     private String feedback;
+    @Schema(description = "专家备注(仅专家/管理员可见)")
+    private String expertNote;
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 }

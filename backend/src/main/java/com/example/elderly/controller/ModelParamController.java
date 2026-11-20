@@ -1,6 +1,7 @@
 package com.example.elderly.controller;
 
 import lombok.RequiredArgsConstructor;
+import com.example.elderly.annotation.RequireRole;
 import com.example.elderly.common.Result;
 import com.example.elderly.dto.model.ModelParamSaveDTO;
 import com.example.elderly.service.ModelParamService;
@@ -24,12 +25,14 @@ public class ModelParamController {
         ModelParamVO vo = modelParamService.getCurrentParams();
         return Result.success(vo);
     }
+    @RequireRole({"admin", "staff"})
     @PutMapping("/params")
     public Result<Void>saveParams(@Validated @RequestBody ModelParamSaveDTO dto, HttpServletRequest request){
         String operator = request.getHeader("username");
         modelParamService.saveParams(dto,operator);
         return Result.success();
     }
+    @RequireRole({"admin", "staff"})
     @PutMapping("/reset")
     public Result<Void> resetDefault(HttpServletRequest request){
         String operator = request.getHeader("username");
@@ -41,6 +44,7 @@ public class ModelParamController {
         List<ModelParamVersionVO> list= modelParamService.getVersionHistory();
           return Result.success(list);
     }
+    @RequireRole({"admin", "staff"})
     @PostMapping("/rollback/{version}")
     public Result<Void>rollback(@PathVariable String version,HttpServletRequest request){
         String operator = request.getHeader("username");

@@ -27,8 +27,13 @@ public class InterventionRecord {
     @Schema(description = "老人姓名")
     private String elderName;
 
+    @Schema(description = "老人ID")
+    private Long elderId;
+
     @Schema(description = "执行人")
     private String executor;
+    @Schema(description = "执行人账号ID(user.id)")
+    private Long executorId;
 
     @Schema(description = "执行状态：正常/部分执行/未执行/异常")
     private String status;

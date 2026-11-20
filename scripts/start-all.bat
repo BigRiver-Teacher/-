@@ -16,5 +16,7 @@ timeout /t 6 /nobreak >nul
 start "zhaoxi-algorithm" cmd /k "%ROOT%\scripts\04-start-algorithm.bat"
 
 echo Launched 3 windows (backend / frontend / algorithm).
+echo NOTE: DB/JWT credentials are injected by 02-start-backend.bat (JWT_SECRET auto-generated
+echo       into backend\.jwt-secret.local on first run; that file is gitignored).
 echo Algorithm runs in degraded mode unless algorithm\models is complete.
 pause

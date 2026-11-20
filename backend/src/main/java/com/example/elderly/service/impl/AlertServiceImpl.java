@@ -12,14 +12,21 @@ import com.example.elderly.dto.alert.AlertQueryDTO;
 import com.example.elderly.entity.Alert;
 import com.example.elderly.mapper.AlertMapper;
 import com.example.elderly.service.AlertService;
+import com.example.elderly.util.DataScopeUtil;
+import com.example.elderly.util.LoginUserUtil;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 @Service
 public class AlertServiceImpl extends ServiceImpl<AlertMapper, Alert> implements AlertService {
 
+    @Resource
+    private DataScopeUtil dataScopeUtil;
 
     @Override
     public IPage<Alert> pageList(AlertQueryDTO dto) {
@@ -43,6 +50,15 @@ public class AlertServiceImpl extends ServiceImpl<AlertMapper, Alert> implements
         }
         if(dto.getEndDate()!=null){
             wrapper.eq(Alert::getAlertTime,dto.getEndDate());
+        }
+        // 数据范围过滤：非管理员仅能访问其服务关系内老人的告警
+        List<Long> elderIds = dataScopeUtil.getAccessibleElderIds(LoginUserUtil.getUserId());
+        if (elderIds != null) {
+            if (elderIds.isEmpty()) {
+                wrapper.in(Alert::getElderId, Collections.singletonList(-1L));
+            } else {
+                wrapper.in(Alert::getElderId, elderIds);
+            }
         }
         wrapper.orderByDesc(Alert::getAlertTime);
         return baseMapper.selectPage(page,wrapper);

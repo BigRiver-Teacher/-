@@ -12,11 +12,21 @@ import com.example.elderly.entity.GaitRecord;
 import com.example.elderly.entity.HealthNote;
 import com.example.elderly.mapper.HealthNoteMapper;
 import com.example.elderly.service.IHealthNoteService;
+import com.example.elderly.util.DataScopeUtil;
+import com.example.elderly.util.LoginUserUtil;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
+import java.util.List;
+
 @Service
 public class HealthNoteServiceImpl extends ServiceImpl<HealthNoteMapper, HealthNote> implements IHealthNoteService {
+
+    @Resource
+    private DataScopeUtil dataScopeUtil;
+
     @Override
     public IPage<HealthNote> pageList(HealthNoteQueryDTO dto) {
         Page<HealthNote> page = new Page<>(dto.getPage(), dto.getSize());
@@ -34,6 +44,15 @@ public class HealthNoteServiceImpl extends ServiceImpl<HealthNoteMapper, HealthN
                 .le(dto.getEndRecordTime()!=null,
                         HealthNote::getRecordTime,dto.getEndRecordTime())
                 .orderByDesc(HealthNote::getRecordTime);
+        // 数据范围过滤：非管理员仅能访问其服务关系内老人的记录
+        List<Long> elderIds = dataScopeUtil.getAccessibleElderIds(LoginUserUtil.getUserId());
+        if (elderIds != null) {
+            if (elderIds.isEmpty()) {
+                wrapper.in(HealthNote::getElderId, Collections.singletonList(-1L));
+            } else {
+                wrapper.in(HealthNote::getElderId, elderIds);
+            }
+        }
         baseMapper.selectPage(page,wrapper);
         return page;
     }

@@ -31,6 +31,8 @@ public class Elder {
     private String residenceType;
     @Schema(description = "备注")
     private String remark;
+    @Schema(description = "关联账号ID(user.id)")
+    private Long userId;
     @Schema(description = "是否绑定设备")
     private Boolean deviceBound;
     @Schema(description = "逻辑删除")

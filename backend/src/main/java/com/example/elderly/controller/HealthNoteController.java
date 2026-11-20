@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.elderly.common.PageResult;
 import com.example.elderly.common.Result;
@@ -32,7 +33,7 @@ public class HealthNoteController {
     public Result<Void> delete(@PathVariable @NotNull Long id){
         Boolean flag = healthNoteService.deleteById(id);
         if(!flag){
-            return Result.fail(400,"备注不存在");
+            throw new BusinessException(400,"备注不存在");
         }
         return Result.success();
     }

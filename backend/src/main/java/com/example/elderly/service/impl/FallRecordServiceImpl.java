@@ -11,11 +11,21 @@ import com.example.elderly.dto.fall.FallRecordUpdateDTO;
 import com.example.elderly.entity.FallRecord;
 import com.example.elderly.mapper.FallRecordMapper;
 import com.example.elderly.service.IFallRecordService;
+import com.example.elderly.util.DataScopeUtil;
+import com.example.elderly.util.LoginUserUtil;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
+import java.util.List;
+
 @Service
 public class FallRecordServiceImpl extends ServiceImpl<FallRecordMapper, FallRecord> implements IFallRecordService {
+
+    @Resource
+    private DataScopeUtil dataScopeUtil;
+
     @Override
     public IPage<FallRecord> pageList(FallRecordQueryDTO dto) {
         Page<FallRecord> page = new Page<>(dto.getPage(), dto.getSize());
@@ -30,6 +40,15 @@ public class FallRecordServiceImpl extends ServiceImpl<FallRecordMapper, FallRec
                         FallRecord::getFallTime,dto.getStartFallTime())
                 .le(dto.getEndFallTime()!=null,
                         FallRecord::getFallTime,dto.getEndFallTime());
+        // 数据范围过滤
+        List<Long> elderIds = dataScopeUtil.getAccessibleElderIds(LoginUserUtil.getUserId());
+        if (elderIds != null) {
+            if (elderIds.isEmpty()) {
+                wrapper.in(FallRecord::getElderId, Collections.singletonList(-1L));
+            } else {
+                wrapper.in(FallRecord::getElderId, elderIds);
+            }
+        }
         return baseMapper.selectPage(page,wrapper);
     }
 

@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import com.example.elderly.common.Result;
 import com.example.elderly.dto.GaitDTO;
@@ -35,7 +36,7 @@ public class GaitController {
     public Result<Void> delete(@PathVariable Long id){
         Boolean flag = gaitService.deleteGait(id);
         if(!flag){
-            return Result.fail(400,"删除失败");
+            throw new BusinessException(400,"删除失败");
         }
         return Result.success();
     }

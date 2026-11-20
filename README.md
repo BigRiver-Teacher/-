@@ -6,16 +6,16 @@
 
 | 模块 | 技术栈 | 端口 | 说明 |
 | --- | --- | --- | --- |
-| 前端 | Vue 3 + TypeScript + Vite + Element Plus + ECharts + Pinia | 5173 | 管理端界面、监控大屏、业务交互 |
-| 后端 | Spring Boot 3.3.4 + MyBatis-Plus + MySQL 8（Java 17） | 8080 | REST 接口、JWT 鉴权、业务逻辑 |
-| 算法 | FastAPI + YOLO11n-pose + BoT-SORT + LSTM v2（八特征、二分类） | 8001 | 视频跌倒检测，输出 12 字段事件 JSON 与标注视频 |
+| 前端 | Vue 3 + TypeScript + Vite + Element Plus + ECharts + Pinia | 5173（预览 4173） | 四端界面（管理员/专家/陪护/老人端，含陪护主管），同一登录页按手机号识别 5 类角色分端 |
+| 后端 | Spring Boot 3.3.4 + MyBatis-Plus + MySQL 8（Java 17） | 8080 | REST 接口、JWT 默认拒绝鉴权 + 服务端 RBAC、业务逻辑 |
+| 算法 | FastAPI + YOLO11n-pose + BoT-SORT + LSTM v2（八特征、二分类） | 8001 | 视频跌倒检测，输出 12 字段事件 JSON 与标注视频；可选 API Key 鉴权 |
 
 ## 目录结构
 
 ```
 zhaoxi-huxing/
 ├── frontend/                     Vue3 前端
-│   ├── src/api/                  接口封装（按业务域拆分，26 个模块）
+│   ├── src/api/                  接口封装（按业务域拆分，33 个模块）
 │   ├── src/views/                页面（按业务编号 1~15 组织）
 │   ├── src/stores/               Pinia 状态
 │   ├── src/router/               路由与菜单权限映射
@@ -33,8 +33,8 @@ zhaoxi-huxing/
 │   │   └── util/                 工具类（JWT、响应封装等）
 │   ├── src/main/resources/
 │   │   ├── application.properties          主配置（支持环境变量覆盖）
-│   │   ├── init.sql                        建库建表（25 张表）
-│   │   └── seed_data.sql                   演示数据
+│   │   ├── init.sql                        建库建表（37 张表）
+│   │   └── seed_data.sql                   演示数据（含四端账号、服务关系、聊天、健康指标）
 │   └── pom.xml
 ├── algorithm/                    跌倒检测微服务（v2：八特征、二分类）
 │   ├── main.py                   FastAPI 入口
@@ -52,7 +52,7 @@ zhaoxi-huxing/
 │   ├── model-v2-resources/       v2 微调/对比脚本与训练评测证据
 │   ├── requirements.txt
 │   └── .env.example
-├── docs/                         架构说明、技术路线图、流程图
+├── docs/                         架构说明、代码修改与使用说明、发布检查清单、技术路线图、流程图
 ├── scripts/                      Windows 一键初始化/启动/自检脚本
 ├── LICENSE
 └── README.md
@@ -84,27 +84,50 @@ mysql -uroot -p --default-character-set=utf8mb4 -e "source backend/src/main/reso
 
 ### 第 1 步：启动后端
 
-> ⚠️ **启动前必须配置环境变量**（代码已移除默认密码，未配置将启动报错）：
->
-> | 环境变量 | 必填 | 说明 |
-> | --- | --- | --- |
-> | `DB_PASSWORD` | ✅ | 数据库密码，无默认值 |
-> | `JWT_SECRET` | ✅ | JWT 签名密钥，**长度至少 32 位**，否则启动时 `JwtUtil` 直接抛异常 |
+> **仓库内不再内置任何默认密钥**。`JWT_SECRET` 未配置或长度不足 32 位时，后端启动即失败
+> （`JwtUtil` 抛 `IllegalStateException`），这是刻意的安全设计，避免用公开默认密钥签发可被伪造的 Token。
+
+| 环境变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `DB_USERNAME` | `root` | 数据库账号 |
+| `DB_PASSWORD` | 空 | 数据库密码，**必需**（本地演示常用 `123456`） |
+| `JWT_SECRET` | 空 | JWT 签名密钥，**必需**，长度至少 32 位，否则启动失败 |
+| `APP_AUTH_REGISTRATION_ENABLED` | `true` | 注册/找回密码开关；开启时仍需图形外的邮箱验证码（演示验证码写在后端日志） |
+
+**本地开发不用手配**：启动引导 `LocalEnvBootstrap` 会在 `java -jar` / `mvn spring-boot:run` 前自动补齐——
+读取 `backend/.env.local`（模板见 `backend/.env.local.example`）填入未设置的变量，并在缺少 `JWT_SECRET` 时
+读取或生成 `backend/.jwt-secret.local`（与 `scripts\02-start-backend.bat` 共用同一文件）。已设置的环境变量优先级最高，不会被覆盖。
+
+推荐用脚本启动：
 
 ```bash
-# Linux / macOS
-export DB_PASSWORD=你的数据库密码
-export JWT_SECRET=$(head -c 48 /dev/urandom | base64)   # 生成 ≥32 位的随机密钥
-# Windows (PowerShell)
-$env:DB_PASSWORD="你的数据库密码"
-$env:JWT_SECRET="请填写至少32位的随机字符串"
-
-cd backend
-mvn -DskipTests package
-java -jar target/javapratice-0.0.1-SNAPSHOT.jar
+scripts\02-start-backend.bat        # 生成 backend\.jwt-secret.local（已 gitignore），后续启动自动复用
 ```
 
-验证：`http://127.0.0.1:8080/api/stats/overview`、接口文档 `http://127.0.0.1:8080/doc.html`。
+也可直接在 IDE 终端启动（VSCode / IDEA，三种方式任选）：
+
+```powershell
+# 方式一：直接用 jar（工作目录为 backend/ 或项目根目录均可）
+cd backend
+java -jar target\javapratice-0.0.1-SNAPSHOT.jar
+
+# 方式二：Maven 插件运行
+cd backend
+mvn spring-boot:run
+
+# 方式三：手工指定变量（注意 PowerShell 用 $env:，bash 用 export）
+# PowerShell:
+$env:DB_PASSWORD="123456"
+$env:JWT_SECRET="请填写至少32位的随机字符串"
+java -jar target\javapratice-0.0.1-SNAPSHOT.jar
+```
+
+> ⚠️ **PowerShell 里不要用 bash 写法** `JWT_SECRET=xxx java -jar ...`，会报
+> `无法将“xxx”项识别为 cmdlet`；PowerShell 必须先 `$env:JWT_SECRET="..."` 再执行命令。
+> 首次启动若看到 `[本地引导] 未设置 JWT_SECRET，已生成随机密钥并保存到 ...`，属正常行为。
+
+验证：未登录访问 `http://127.0.0.1:8080/api/stats/overview` 返回 **401（属正常，接口默认拒绝匿名访问）**；
+接口文档 `http://127.0.0.1:8080/doc.html` 可匿名打开。登录后携带 `Authorization: Bearer <token>` 再访问业务接口。
 
 ### 第 2 步：启动前端
 
@@ -116,6 +139,16 @@ npm run dev
 
 访问 `http://localhost:5173`（Vite 默认绑定 IPv6，用 localhost 而非 127.0.0.1）。
 `/api` 由 `vite.config.ts` 代理到 `http://localhost:8080`，后端改端口时需同步修改代理目标。
+
+验证生产构建时可用 preview（端口 **4173**，同样配置了 `/api` 代理；后端 CORS 白名单已包含 4173）：
+
+```bash
+npm run build
+npm run preview      # http://localhost:4173
+```
+
+> 后端 `app.cors.allowed-origins` 默认允许 `5173` 与 `4173`（localhost 与 127.0.0.1 各一份），
+> 换端口部署需用环境变量 `APP_CORS_ALLOWED_ORIGINS` 覆盖，否则浏览器会被 CORS 拦截。
 
 ### 第 3 步：启动算法服务（可选）
 
@@ -130,6 +163,9 @@ python main.py
 
 验证：`http://127.0.0.1:8001/api/fall-detection/health`，模型加载成功时返回 `loaded: true`。
 接口文档：`http://127.0.0.1:8001/docs`。
+
+> 算法接口默认不鉴权（`FALL_API_KEY` 为空）。公网部署请设置随机 Key，之后除 health/文档外
+> 均需带 `X-API-Key` 请求头；上传限制由 `FALL_MAX_UPLOAD_MB`（默认 500MB）控制。
 
 > ⚠️ **【重要】权重文件放置步骤（必须执行，否则算法无法工作）**：
 > 推理代码已内置在 `algorithm/models/`，但**权重文件不入库**。clone 后必须按
@@ -146,6 +182,44 @@ python main.py
 scripts\99-verify.bat
 ```
 
+发布前请按 `docs/RELEASE_CHECKLIST.md` 逐项勾选：角色权限矩阵、账号冒烟、契约与异常、已知遗留。
+完整的架构与鉴权说明见 `docs/ARCHITECTURE.md`；
+**本次代码改了什么、别人 clone 后怎么跑通各端口**，见 `docs/代码修改与使用说明.md`。
+
+## 多端登录账号（演示）
+
+项目为同一套前端 + 后端，按登录**手机号**自动识别角色并进入对应端（后端按 `phone` 查库定位账号）。
+密码统一为 `123456`。
+
+> **密码传输与存储**：登录请求体传的是**明文密码**（HTTP body，生产环境请置于 HTTPS 之后），
+> 后端以 BCrypt 哈希比对，库内不存明文；旧 MD5 数据首次登录成功后会自动升级为 BCrypt。
+
+| 端 | 角色 | 账号（手机号） | 姓名 | 职称/职位 | 负责对象 / 备注 |
+| --- | --- | --- | --- | --- | --- |
+| 管理员端 | admin | 13800000000 | 系统管理员 | — | 全局管理 |
+| 专家端 | expert | 13800001001 | 陈伟明 | 主任医师 | 老年心血管疾病（市一医院） |
+| 专家端 | expert | 13800001002 | 林美丽 | 副主任医师 | 老年神经系统疾病（市二医院） |
+| 陪护端 | caregiver | 13800002101 | 周丽华 | 高级护工（朝阳社区） | 负责：张建国、赵玉兰、钱淑珍 |
+| 陪护端 | caregiver | 13800002102 | 吴晓芳 | 护工（海淀社区） | 负责：李秀英、刘德胜 |
+| 陪护主管 | supervisor | 13800002201 | 郑国栋 | 护理主管（朝阳社区） | 负责：王德发、陈阿妹 |
+| 陪护主管 | supervisor | 13800002202 | 陈志强 | 护理主管（海淀社区） | 全组管理 |
+| 老人端（家属代办） | elder | 13800003001 | 张小明 | 家属 | 张建国的儿子（紧急联系人） |
+| 老人端（家属代办） | elder | 13800003002 | 李大明 | 家属 | 李秀英的儿子（紧急联系人） |
+
+> 登录后进入：管理员→管理主页、专家→专家工作台、陪护/主管→陪护工作台、老人(家属)→健康概览。
+
+> 另有 4 个内置员工演示账号（staff 角色）：`zhangsan`(13800001111 张三)、`lisi`(13800002222 李四)、`wangwu`(13800003333 王五)、`zhaoliu`(13800004444 赵六)，密码同为 `123456`，仅用于管理员端「账号权限」列表与操作日志署名，具备管理员端同等权限；非四端业务演示账号，请勿用于日常演示登录。原未文档化的隐藏管理员账号 `sunqi` 已移除。
+
+> 说明：老人端由家属账号代办（无老人独立账号）；一键呼叫、健康指标等硬件数据均为模拟数据（无真实设备，`HealthMetricGenerator` 定时生成）。四端共享同一 MySQL `elderly_care`，按角色 + 服务关系（`elder_caregiver` / `elder_expert` / `elder_family`）做数据行级隔离——一个账号只能访问本端与本人服务对象的数据（如护工 A 只能看到其负责的老人 B）。
+
+### 各端功能模块概览
+
+- **管理员端**：管理主页、跌倒预警、老人详情（基础档案/步态/跌倒/健康备注）、传感设备管理、专家康养咨询、陪护人员管理、个人主页、告警信息中心、居家空间档案、干预方案管理、日常康养日程、**对话监管（查看专家↔家属/老人全部对话）**、系统管理、组件与功能。
+- **专家端**：工作台、我的咨询（聊天+图片+家属评分）、排班请假（管理员审批）、老人健康档案（只读）、干预方案建议、个人中心。
+- **陪护端**：工作台、我负责的老人、今日任务、联系家属（聊天）、告警处置、健康记录、空间巡检、个人中心。
+- **陪护主管**：排班管理（课程表）、请假审批、全组视角 + 陪护端全部功能。
+- **老人端（家属代办）**：首页健康概览（5 指标 7 天趋势）、在线咨询（新建咨询+满意度打分）、联系陪护、我的护工与家人、用药与日程提醒、个人档案、一键呼叫（侧边栏底部常驻）。
+
 ## 配置说明
 
 ### 后端
@@ -156,8 +230,10 @@ scripts\99-verify.bat
 | --- | --- | --- |
 | `spring.datasource.url` | `DB_URL` | `jdbc:mysql://localhost:3306/elderly_care?...` |
 | `spring.datasource.username` | `DB_USERNAME` | `root` |
-| `spring.datasource.password` | `DB_PASSWORD` | `123456` |
-| `jwt.secret` | `JWT_SECRET` | 开发占位密钥 |
+| `spring.datasource.password` | `DB_PASSWORD` | **空（必须提供）** |
+| `jwt.secret` | `JWT_SECRET` | **空（必须提供，≥32 位）** |
+| `app.cors.allowed-origins` | `APP_CORS_ALLOWED_ORIGINS` | `5173`/`4173` 的 localhost 与 127.0.0.1 |
+| `app.auth.registration-enabled` | `APP_AUTH_REGISTRATION_ENABLED` | `true`（注册仍需邮箱验证码） |
 
 也可使用 profile 方式：复制 `application-local.properties.example` 为 `application-local.properties`，
 以 `--spring.profiles.active=local` 启动。
@@ -168,13 +244,18 @@ scripts\99-verify.bat
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `FALL_MODEL_DIR` | `models` | 模型工程根目录。**必须设置为绝对路径**（如 `D:/GitHub/zhaoxi-huxing/algorithm/models`），未使用绝对路径会导致权重加载失败 |
+| `FALL_MODEL_DIR` | `models` | 模型工程根目录，**相对路径即可**（相对启动时的当前目录，即 `algorithm/`）；也可写绝对路径。服务启动时会 `resolve()` 成绝对路径 |
 | `FALL_YOLO_MODEL` | `yolo11n-pose-fallen.pt` | 姿态权重，缺失自动回退 `yolo11n-pose.pt` |
-| `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | v2 八特征二分类；改 `models/checkpoints/best.pth` 即回退 v1 三分类 |
+| `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | 默认 v2 八特征二分类；改 `models/checkpoints/best.pth` 即回退 v1 三分类 |
 | `FALL_TRACKER_CONFIG` | `configs/botsort.yaml` | BoT-SORT 跟踪器配置 |
 | `FALL_DEVICE` | 空 | `cuda` / `cpu` / 留空自动 |
-| `FALL_CONFIDENCE_THRESHOLD` | `0.40` | 跌倒置信度阈值 |
+| `FALL_CONFIDENCE_THRESHOLD` | `0.40` | 服务级跌倒置信度阈值（请求可用 `confidence` 覆盖） |
+| `FALL_COOLDOWN_FRAMES` | `90` | 服务级告警冷却帧数（请求可用 `cooldown` 覆盖） |
+| `FALL_API_KEY` | 空 | 接口鉴权 Key。**留空则不启用鉴权**；设置后除 `/health` 与文档外，所有接口需带 `X-API-Key` 头 |
+| `FALL_MAX_UPLOAD_MB` | `500` | 上传视频大小上限（MB），超限返回 413 |
 | `FALL_PORT` | `8001` | 服务端口 |
+
+> 启用鉴权后，`curl` 调用需加 `-H "X-API-Key: <你的key>"`，否则返回 401；`/health` 始终匿名可访问以便探活。
 
 完整清单与说明见 `algorithm/.env.example` 与 `algorithm/README.md`。
 

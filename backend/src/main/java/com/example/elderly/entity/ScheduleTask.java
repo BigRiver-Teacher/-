@@ -12,6 +12,8 @@ public class ScheduleTask extends BaseEntity {
     private String taskCode;
     @Schema(description = "任务类型")
     private String taskType;
+    @Schema(description = "老人ID")
+    private Long elderId;
     @Schema(description = "老人姓名")
     private String elderName;
     @Schema(description = "位置")
@@ -32,6 +34,8 @@ public class ScheduleTask extends BaseEntity {
     private String handleResult;
     @Schema(description = "处理人")
     private String handler;
+    @Schema(description = "处理人账号ID(user.id)")
+    private Long handlerId;
     @Schema(description = "完成时间")
     private LocalDateTime completeTime;
     @Schema(description = "备注")

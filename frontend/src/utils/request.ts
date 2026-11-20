@@ -37,6 +37,17 @@ request.interceptors.request.use(
 )
 
 // ===== 响应拦截器 =====
+// 阶段2：确保每个失败响应只提示一次，避免"业务码提示 + HTTP 错误提示"重复弹窗
+let lastErrorToastAt = 0
+let lastErrorToastMsg = ''
+function toastOnce(message: string) {
+  const now = Date.now()
+  if (message === lastErrorToastMsg && now - lastErrorToastAt < 800) return
+  lastErrorToastMsg = message
+  lastErrorToastAt = now
+  ElMessage.error(message)
+}
+
 request.interceptors.response.use(
   (response: AxiosResponse<Result>) => {
     const res = response.data
@@ -48,7 +59,7 @@ request.interceptors.response.use(
 
     // 业务状态码判断
     if (res.code !== undefined && res.code !== 200) {
-      ElMessage.error(res.message || '请求失败')
+      toastOnce(res.message || '请求失败')
 
       // 401 未授权 → 回登录页
       if (res.code === 401) {
@@ -70,19 +81,19 @@ request.interceptors.response.use(
       case 401:
         localStorage.removeItem('token')
         router.push('/login')
-        ElMessage.error('登录过期，请重新登录！')
+        toastOnce('登录过期，请重新登录！')
         break
       case 403:
-        ElMessage.error('权限不足')
+        toastOnce(msg || '权限不足，请联系管理员')
         break
       case 404:
-        ElMessage.error('请求的资源不存在')
+        toastOnce(msg || '请求的资源不存在')
         break
       case 500:
-        ElMessage.error(msg || '服务器错误')
+        toastOnce(msg || '服务器错误，请联系管理员')
         break
       default:
-        ElMessage.error(msg || '网络异常，请稍后重试')
+        toastOnce(msg || '网络异常，请稍后重试')
     }
 
     return Promise.reject(error)

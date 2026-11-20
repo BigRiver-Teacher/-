@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+
+    /** 阶段0止血开关：服务端验证码未实现前，临时封禁公共注册与密码找回 */
+    @Value("${app.auth.registration-enabled:false}")
+    private boolean registrationEnabled;
+
+    private void requireRegistrationEnabled() {
+        if (!registrationEnabled) {
+            throw new BusinessException(403, "注册与密码找回功能暂未开放，请联系管理员");
+        }
+    }
 
     /**
      * 登录接口
@@ -58,6 +69,7 @@ public class AuthController {
 
     @PostMapping("/send-reset-code")
     public Result<String> sendResetCode(@Valid @RequestBody SendResetCodeDTO dto) {
+        requireRegistrationEnabled();
         log.info("[AuthController] 发送重置验证码请求, 邮箱: {}", dto.getEmail());
         Result<String> result = authService.sendResetCode(dto);
         if (result.getCode() != 200) {
@@ -68,6 +80,7 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public Result<String> reSendPassword(@Valid @RequestBody ResetPasswordDTO dto) {
+        requireRegistrationEnabled();
         log.info("[AuthController] 重置密码请求, 邮箱: {}", dto.getEmail());
         Result<String> result = authService.resetPassword(dto);
         if (result.getCode() != 200) {
@@ -78,6 +91,7 @@ public class AuthController {
 
     @PostMapping("/send-register-code")
     public Result<String> sendRegisterCode(@Valid @RequestBody SendRegisterCodeDTO dto) {
+        requireRegistrationEnabled();
         log.info("[AuthController] 发送注册验证码请求, 手机号: {}", dto.getPhone());
         Result<String> result = authService.sendRegisterCode(dto);
         if (result.getCode() != 200) {
@@ -88,6 +102,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public Result<String> register(@Valid @RequestBody RegisterDTO dto) {
+        requireRegistrationEnabled();
         log.info("[AuthController] 注册请求, 手机号: {}", dto.getPhone());
         Result<String> result = authService.register(dto);
         if (result.getCode() != 200) {

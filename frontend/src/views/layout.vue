@@ -16,31 +16,36 @@
           text-color="rgba(255,255,255,0.65)"
           active-text-color="#fff"
         >
-          <!-- ★ 侧边栏由 useMenuStore 驱动渲染，支持动态排序/显示隐藏/图标切换 -->
-          <template v-for="item in menuStore.sidebarItems" :key="item.id">
-            <!-- 有 children 的为分组菜单（el-sub-menu） -->
+          <!-- ★ 侧边栏由后端动态菜单驱动（按角色），本地配置仅作兜底 -->
+          <template v-for="item in sidebarMenuItems" :key="item.id">
             <el-sub-menu
-              v-if="'children' in item"
-              :index="item.id"
-              :class="{ 'parent-active': activeParentId === item.id }"
+              v-if="item.children && item.children.length"
+              :index="item.path || String(item.id)"
             >
               <template #title>
-                <el-icon><component :is="item.icon" /></el-icon>
+                <el-icon><component :is="item.icon || 'Menu'" /></el-icon>
                 <span>{{ item.name }}</span>
               </template>
-              <el-menu-item v-for="child in item.children" :key="child.id" :index="child.id">
-                <el-icon><component :is="child.icon" /></el-icon>
+              <el-menu-item v-for="child in item.children" :key="child.id" :index="child.path">
+                <el-icon><component :is="child.icon || 'Menu'" /></el-icon>
                 <span>{{ child.name }}</span>
               </el-menu-item>
             </el-sub-menu>
-            <!-- 无 children 的为独立菜单项 -->
-            <el-menu-item v-else :index="item.id">
-              <el-icon><component :is="item.icon" /></el-icon>
+            <el-menu-item v-else :index="item.path">
+              <el-icon><component :is="item.icon || 'Menu'" /></el-icon>
               <span>{{ item.name }}</span>
             </el-menu-item>
           </template>
         </el-menu>
       </nav>
+
+      <!-- 老人端一键呼叫（侧边栏底部常驻，显眼且不被内容覆盖） -->
+      <div v-if="isElder" class="sos-area">
+        <button class="sos-btn" :disabled="sosLoading" @click="handleSos">
+          <span class="sos-icon">🆘</span>
+          <span class="sos-text">{{ sosLoading ? '呼叫中...' : '一键呼叫' }}</span>
+        </button>
+      </div>
     </aside>
 
     <!-- 主内容 -->
@@ -118,11 +123,11 @@
                     :key="mail.id"
                     class="mail-item"
                     :class="{ unread: !mail.read }"
-                    @click="markMailRead(mail.id)"
+                    @click="handleMailClick(mail)"
                   >
                     <div class="mail-item-title">{{ mail.title }}</div>
                     <div class="mail-item-content">{{ mail.content }}</div>
-                    <div class="mail-item-time">{{ mail.time }}</div>
+                    <div class="mail-item-time">{{ fmtTime(mail.time) }}</div>
                     <div v-if="!mail.read" class="mail-dot"></div>
                   </div>
                 </div>
@@ -146,7 +151,7 @@
           <el-dropdown trigger="click" @command="handleUserCommand" class="user-dropdown">
             <span class="user-info">
               <el-avatar :size="32" :src="user_pic" />
-              <span class="admin-name">管理员</span>
+              <span class="admin-name">{{ displayName }}</span>
               <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -155,7 +160,7 @@
                   <el-icon><Avatar /></el-icon>
                   <span>个人中心</span>
                 </el-dropdown-item>
-                <el-dropdown-item command="settings">
+                <el-dropdown-item v-if="isAdmin" command="settings">
                   <el-icon><Setting /></el-icon>
                   <span>账号设置</span>
                 </el-dropdown-item>
@@ -248,10 +253,12 @@ import {
 } from '@element-plus/icons-vue'
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../utils/request'
 import { useMenuStore } from '@/stores/menuStore'
 import { useNotificationStore } from '@/stores/notificationStore'
+import { useUserStore } from '@/stores/user'
+import { submitSos } from '@/api/elderPortal'
 
 const router = useRouter()
 const route = useRoute()
@@ -260,6 +267,89 @@ const route = useRoute()
 const menuStore = useMenuStore()
 // ===== 通知 Store（邮件下拉数据） =====
 const notificationStore = useNotificationStore()
+// ===== 用户 Store（顶栏用户名/角色） =====
+const userStore = useUserStore()
+
+// 顶栏显示名：优先真实姓名，其次账号，兜底「管理员」
+const displayName = computed(() => {
+  const info: any = userStore.userInfo
+  return info?.realName || info?.username || '管理员'
+})
+
+// ===== 各端个人主页路径（按角色分发） =====
+const ROLE_PROFILE: Record<string, string> = {
+  admin: '/home/profile',
+  staff: '/home/profile',
+  expert: '/expert/profile',
+  caregiver: '/caregiver/profile',
+  supervisor: '/caregiver/profile',
+  elder: '/elder/profile',
+}
+
+function currentRole(): string {
+  return (userStore.userInfo as any)?.role || localStorage.getItem('role') || 'admin'
+}
+
+function getProfilePath(): string {
+  return ROLE_PROFILE[currentRole()] || '/home/profile'
+}
+
+const isAdmin = computed(() => {
+  const role = currentRole()
+  return role === 'admin' || role === 'staff'
+})
+
+// ===== 老人端一键呼叫 =====
+const isElder = computed(() => {
+  const role = (userStore.userInfo as any)?.role || localStorage.getItem('role')
+  return role === 'elder'
+})
+const sosLoading = ref(false)
+
+async function handleSos() {
+  if (sosLoading.value) return
+  try {
+    await ElMessageBox.confirm('确认立即呼叫陪护人员？', '一键呼叫', {
+      confirmButtonText: '立即呼叫',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  sosLoading.value = true
+  try {
+    const res = await submitSos()
+    if (res.data.code === 200) {
+      ElMessage.success('已呼叫，陪护人员将尽快响应！')
+    } else {
+      ElMessage.error(res.data.message || '呼叫失败')
+    }
+  } catch (e) {
+    ElMessage.error('呼叫失败，请稍后重试')
+  } finally {
+    sosLoading.value = false
+  }
+}
+
+// ===== 侧边栏菜单（优先后端动态菜单，兜底本地配置） =====
+const sidebarMenuItems = computed(() => {
+  if (menuStore.dynamicSidebarItems.length > 0) {
+    return menuStore.dynamicSidebarItems as any
+  }
+  return menuStore.sidebarItems.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    icon: item.icon,
+    path: item.route || item.path || '',
+    children: item.children?.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      icon: c.icon,
+      path: c.route || c.path || '',
+    })),
+  }))
+})
 
 // ===== 路由映射 =====
 const routeMap = {
@@ -341,8 +431,7 @@ const activeParentId = computed(() => {
 
 // ===== 面包屑导航 =====
 const breadcrumbCurrent = computed(() => {
-  const matchedIndex = pathToIndex[route.path]
-  return matchedIndex ? (menuNames[matchedIndex] || '') : ''
+  return menuStore.findMenuNameByPath(route.path) || (route.meta.title as string) || ''
 })
 
 const breadcrumbParent = computed(() => {
@@ -364,9 +453,12 @@ const handleUserCommand = (command: string) => {
       goToProfile()
       break
     case 'settings':
-      router.push('/home/system/permission')
+      if (isAdmin.value) {
+        router.push('/home/system/permission')
+      }
       break
     case 'logout':
+      userStore.clearToken()
       router.push('/login')
       break
   }
@@ -378,43 +470,24 @@ const activeTab = ref('')
 const tabsContainerRef = ref(null)
 
 // ===== 默认展开的子菜单 =====
-const defaultOpeneds = ref(['3', '10', '14', '15'])
+const defaultOpeneds = ref(['/home/elder', '/home/alert', '/home/system', '/home/custom'])
 const user_pic = 'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg'
 
-// ✅ 修复：更新活跃菜单
+// ✅ 更新活跃菜单（path 驱动，各端通用）
 const updateActiveMenu = () => {
   const currentPath = route.path
-
-  // ✅ 特殊处理 /home，默认选中管理主页
-  if (currentPath === '/home' || currentPath === '/home/') {
-    defaultActive.value = '1'
-    // 如果管理主页标签不存在，添加它
-    const exists = tabs.value.some((tab) => tab.path === '/home/management')
-    if (!exists) {
-      tabs.value.push({
-        index: '1',
-        path: '/home/management',
-        name: '管理主页',
-      })
-    }
-    if (activeTab.value !== '/home/management') {
-      activeTab.value = '/home/management'
-    }
+  if (currentPath === '/home' || currentPath === '/') {
+    defaultActive.value = '/home/management'
+    activeTab.value = '/home/management'
     return
   }
-
-  const matchedIndex = pathToIndex[currentPath]
-  if (matchedIndex) {
-    defaultActive.value = matchedIndex
-    // 只有二级菜单项（如 '3-1'）才需要展开其父级子菜单
-    if (matchedIndex.includes('-')) {
-      const parentIndex = matchedIndex.split('-')[0]
-      if (!defaultOpeneds.value.includes(parentIndex)) {
-        defaultOpeneds.value.push(parentIndex)
-      }
-    }
-    addTab(matchedIndex)
+  defaultActive.value = currentPath
+  const name = menuStore.findMenuNameByPath(currentPath) || (route.meta.title as string) || currentPath
+  const exists = tabs.value.some((tab) => tab.path === currentPath)
+  if (!exists) {
+    tabs.value.push({ index: currentPath, path: currentPath, name })
   }
+  activeTab.value = currentPath
 }
 
 // ===== 添加标签页 =====
@@ -485,18 +558,14 @@ watch(activeTab, async () => {
   activeEl?.scrollIntoView({ behavior: 'smooth', inline: 'center' })
 })
 
-// ===== 菜单点击跳转 =====
-const handleSelect = (index) => {
-  const path = routeMap[index]
+// ===== 菜单点击跳转（index 即 path） =====
+const handleSelect = (index: string) => {
+  const path = index
   if (path) {
-    const name = menuNames[index] || index
+    const name = menuStore.findMenuNameByPath(path) || path
     const exists = tabs.value.some((tab) => tab.path === path)
     if (!exists) {
-      tabs.value.push({
-        index: index,
-        path: path,
-        name: name,
-      })
+      tabs.value.push({ index: path, path: path, name: name })
     }
     activeTab.value = path
     router.push(path)
@@ -509,32 +578,21 @@ const searchKeyword = ref('')
 const searchResults = ref([])
 const searchInput = ref(null)
 
-const allMenuItems = [
-  { index: '1', name: '管理主页', path: '/home/management' },
-  { index: '2', name: '跌倒预警', path: '/home/warning' },
-  { index: '3-1', name: '基础档案', path: '/home/elder/base' },
-  { index: '3-2', name: '步态历史', path: '/home/elder/gait' },
-  { index: '3-3', name: '既往跌倒记录', path: '/home/elder/fall-record' },
-  { index: '3-4', name: '健康备注', path: '/home/elder/health-note' },
-  { index: '6', name: '传感设备管理', path: '/home/device' },
-  { index: '7', name: '专家康养咨询', path: '/home/expert' },
-  { index: '8', name: '陪护人员管理', path: '/home/caregiver' },
-  { index: '9', name: '个人主页', path: '/home/profile' },
-  { index: '10-1', name: '实时告警列表', path: '/home/alert/list' },
-  { index: '10-2', name: '家属推送日志', path: '/home/alert/push-log' },
-  { index: '10-3', name: '社区处理台账', path: '/home/alert/community' },
-  { index: '10-4', name: '通知偏好设置', path: '/home/alert/preference' },
-  { index: '11', name: '居家空间档案', path: '/home/space' },
-  { index: '12', name: '干预方案管理', path: '/home/intervention' },
-  { index: '13', name: '日常康养日程', path: '/home/schedule' },
-  { index: '14-1', name: '账号权限', path: '/home/system/permission' },
-  { index: '14-2', name: '操作日志', path: '/home/system/log' },
-  { index: '14-3', name: '数据备份', path: '/home/system/backup' },
-  { index: '14-4', name: '模型参数设置', path: '/home/system/model' },
-  { index: '15-1', name: '侧边栏自定义', path: '/home/custom/sidebar' },
-  { index: '15-2', name: '首页看板布局', path: '/home/custom/dashboard' },
-  { index: '15-3', name: '移动端导航设置', path: '/home/custom/mobile' },
-]
+// 可搜索菜单：从当前端动态菜单拍平出叶子节点（name + path）
+const searchableMenus = computed(() => {
+  const result: { name: string; path: string }[] = []
+  const walk = (nodes: any[]) => {
+    for (const n of nodes) {
+      if (n.children?.length) {
+        walk(n.children)
+      } else if (n.path) {
+        result.push({ name: n.name, path: n.path })
+      }
+    }
+  }
+  walk(menuStore.dynamicSidebarItems as any[])
+  return result
+})
 
 function toggleSearch() {
   searchVisible.value = !searchVisible.value
@@ -553,14 +611,14 @@ function handleSearch() {
     return
   }
   const keyword = searchKeyword.value.trim().toLowerCase()
-  searchResults.value = allMenuItems.filter((item) => item.name.includes(keyword))
+  searchResults.value = searchableMenus.value.filter((item) => item.name.toLowerCase().includes(keyword))
 }
 
 function selectSearchResult(item) {
   const exists = tabs.value.some((tab) => tab.path === item.path)
   if (!exists) {
     tabs.value.push({
-      index: item.index,
+      index: item.path,
       path: item.path,
       name: item.name,
     })
@@ -586,17 +644,29 @@ function markMailRead(id: number) {
   notificationStore.markRead(id)
 }
 
+function handleMailClick(mail: any) {
+  notificationStore.markRead(mail.id)
+  if (mail.link) {
+    router.push(mail.link)
+    mailVisible.value = false
+  }
+}
+
+function fmtTime(t: any) {
+  return t ? String(t).replace('T', ' ').slice(5, 16) : ''
+}
+
 function markAllRead() {
   notificationStore.markAllRead()
   ElMessage.success('已全部标记为已读')
 }
 
 function goToProfile() {
-  const path = '/home/profile'
+  const path = getProfilePath()
   const exists = tabs.value.some((tab) => tab.path === path)
   if (!exists) {
     tabs.value.push({
-      index: '9',
+      index: path,
       path: path,
       name: '个人主页',
     })
@@ -606,11 +676,11 @@ function goToProfile() {
 }
 
 function goToProfileWithNotice() {
-  const path = '/home/profile'
+  const path = getProfilePath()
   const exists = tabs.value.some((tab) => tab.path === path)
   if (!exists) {
     tabs.value.push({
-      index: '9',
+      index: path,
       path: path,
       name: '个人主页',
     })
@@ -634,10 +704,15 @@ const handleClickOutside = (event) => {
 
 // ✅ 修复：组件挂载
 onMounted(() => {
-  // 加载菜单配置（从 localStorage 恢复，驱动侧边栏渲染）
+  // 加载后端动态菜单（按角色）；本地配置仅作兜底
+  menuStore.fetchDynamicMenus()
   menuStore.loadConfig()
   notificationStore.fetchNotifications({ pageNum: 1, pageSize: 10 })
   notificationStore.fetchUnreadCount()
+  // 刷新后 userInfo 丢失时，拉取当前用户信息（顶栏用户名）
+  if (!userStore.userInfo) {
+    userStore.fetchUserInfo()
+  }
   const currentPath = route.path
 
   // ✅ 如果当前路径是 /home，默认打开管理主页
@@ -728,6 +803,52 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px 0;
+}
+
+/* --- 老人端一键呼叫按钮（侧边栏底部常驻） --- */
+.sos-area {
+  flex-shrink: 0;
+  padding: 12px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.sos-btn {
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ff5a5a 0%, #e02020 100%);
+  box-shadow: 0 6px 18px rgba(224, 32, 32, 0.4);
+  transition: all 0.2s ease;
+  animation: sos-pulse 1.6s ease-in-out infinite;
+}
+.sos-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(224, 32, 32, 0.55);
+}
+.sos-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.sos-icon {
+  font-size: 22px;
+}
+@keyframes sos-pulse {
+  0%,
+  100% {
+    box-shadow: 0 6px 18px rgba(224, 32, 32, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 30px rgba(224, 32, 32, 0.75);
+  }
 }
 
 /* ================================================================

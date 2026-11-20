@@ -26,6 +26,7 @@ export const useUserStore = defineStore('user', () => {
       token.value = body.data.token
       userInfo.value = body.data.userInfo ?? null
       localStorage.setItem('token', body.data.token)
+      localStorage.setItem('role', body.data.userInfo?.role ?? '')
       return true
     } catch (err) {
       console.error('登录异常:', err)
@@ -59,6 +60,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     userInfo.value = null
     localStorage.removeItem('token')
+    localStorage.removeItem('role')
   }
 
   return {

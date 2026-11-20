@@ -21,7 +21,7 @@ public class User {
     private String password;
     @Schema(description = "真实姓名")
     private String realName;
-    @Schema(description = "角色: admin/staff")
+    @Schema(description = "角色: admin/expert/caregiver/supervisor/elder/staff")
     private String role;
     private String status;
     @Schema(description = "所属社区")

@@ -7,7 +7,8 @@ server.port=${SERVER_PORT:8080}
 
 spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/elderly_care?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf-8&allowPublicKeyRetrieval=true}
 spring.datasource.username=${DB_USERNAME:root}
-spring.datasource.password=${DB_PASSWORD:change-me}
+# 无内置默认值：本地演示请设置 DB_PASSWORD（脚本会自动注入 123456），生产必须显式配置
+spring.datasource.password=${DB_PASSWORD:}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 mybatis.mapper-locations=classpath:mapper/*.xml
@@ -25,3 +26,13 @@ springdoc.swagger-ui.enabled=true
 springdoc.api-docs.enabled=true
 knife4j.enable=true
 knife4j.production=false
+
+# ===== JWT 签名密钥：无默认值，必须设置 JWT_SECRET（>=32 字节），否则启动失败 =====
+jwt.secret=${JWT_SECRET:}
+
+# ===== 公共注册/找回密码开关（阶段1：验证码就绪后默认开启）=====
+app.auth.registration-enabled=${APP_AUTH_REGISTRATION_ENABLED:true}
+app.auth.code-ttl-seconds=${APP_AUTH_CODE_TTL:300}
+app.auth.code-resend-seconds=${APP_AUTH_CODE_RESEND:60}
+app.auth.code-max-send-per-hour=${APP_AUTH_CODE_MAX_SEND:5}
+app.auth.code-max-attempts=${APP_AUTH_CODE_MAX_ATTEMPTS:5}

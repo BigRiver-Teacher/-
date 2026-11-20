@@ -11,6 +11,6 @@ import lombok.Data;
     private String phone;
     @Schema(description = "验证码")
     private String verifyCode;
-    @Schema(description = "密码(MD5)")
+    @Schema(description = "密码（明文，服务端存储哈希）")
     private String password;
 }

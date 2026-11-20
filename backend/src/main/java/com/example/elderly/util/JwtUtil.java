@@ -28,12 +28,13 @@ public class JwtUtil {
         this.KEY = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String userId) {
+    public String generateToken(String userId, String role) {
         Date now = new Date();
         Date expireTime = new Date(now.getTime() + EXPIRE);
         return Jwts.builder()
 
                 .setSubject(userId)
+                .claim("role", role)
                 .setIssuedAt(now)
                 .setExpiration(expireTime)
                 .signWith(KEY)
@@ -50,5 +51,17 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
+
+    /**
+     * 从token获取用户角色
+     */
+    public String getRole(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(KEY)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("role", String.class);
     }
 }

@@ -33,6 +33,7 @@ logs/
 *.log
 uploads/
 outputs/
+backup/
 algorithm/uploads/
 algorithm/outputs/
 *.tsbuildinfo
@@ -47,6 +48,7 @@ algorithm/outputs/
 .env.*.local
 application-local.properties
 *.local.properties
+.jwt-secret.local
 
 # ===== 大体积媒体文件（演示视频等）=====
 *.mp4
@@ -67,6 +69,9 @@ application-local.properties
 *.pth
 *.onnx
 *.engine
+
+# ===== 本地测试产物（截图等，不属于交付内容）=====
+scripts/shots/
 
 # ===== 本地备份 / 临时文件 =====
 .backup-*/

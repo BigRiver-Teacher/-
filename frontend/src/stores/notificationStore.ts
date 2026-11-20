@@ -29,8 +29,8 @@ export const useNotificationStore = defineStore('notificationStore', () => {
 
   /** 加载通知列表（分页） */
   async function fetchNotifications(params?: {
-    pageNum?: number
-    pageSize?: number
+    page?: number
+    size?: number
   }): Promise<void> {
     loading.value = true
     try {

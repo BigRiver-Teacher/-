@@ -98,6 +98,23 @@ export default defineConfig({
         // 后端没有 /api 前缀时，用 rewrite 去掉；如果有则不需要 rewrite
         // rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

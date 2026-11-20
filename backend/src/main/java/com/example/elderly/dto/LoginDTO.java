@@ -20,7 +20,7 @@ import lombok.Data;
     /** 手机号（新版前端直接传 phone） */
     @Schema(description = "手机号")
     private String phone;
-    @Schema(description = "密码(MD5)")
+    @Schema(description = "密码（明文，服务端做 MD5 后比对）")
     private String password;
 
     /**

@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,7 +58,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Result<String>> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
         String errorMsg = e.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
+                .map(f -> f.getField() + ": " + friendlyMessage(f))
+                .distinct()
                 .collect(Collectors.joining("; "));
         log.warn("参数校验失败: {}", errorMsg);
         Result<String> result = Result.fail(ResultCodeEnum.FAIL.getCode(), errorMsg);
@@ -69,10 +72,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BindException.class)
     public ResponseEntity<Result<String>> handleBindException(BindException e) {
         String errorMsg = e.getBindingResult().getFieldErrors().stream()
-                .map(f -> f.getField() + ": " + f.getDefaultMessage())
+                .map(f -> f.getField() + ": " + friendlyMessage(f))
+                .distinct()
                 .collect(Collectors.joining("; "));
         log.warn("表单绑定失败: {}", errorMsg);
         Result<String> result = Result.fail(ResultCodeEnum.FAIL.getCode(), errorMsg);
+        return ResponseEntity.status(400).body(result);
+    }
+
+    /**
+     * 请求参数类型错误（如 page=abc）— HTTP 400，统一友好文案，不回显内部转换细节
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Result<String>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+        String name = e.getName() == null ? "参数" : e.getName();
+        log.warn("参数类型不匹配: {}={}", name, e.getValue());
+        Result<String> result = Result.fail(400, "参数 " + name + " 格式不正确");
+        return ResponseEntity.status(400).body(result);
+    }
+
+    /**
+     * 缺少必填请求参数（query / form）— HTTP 400
+     * 阶段4 回归发现：原先未处理，直接落到兜底 500。
+     */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Result<String>> handleMissingParam(MissingServletRequestParameterException e) {
+        String name = e.getParameterName();
+        log.warn("缺少必填参数: {}", name);
+        Result<String> result = Result.fail(400, "缺少必要参数 " + name);
         return ResponseEntity.status(400).body(result);
     }
 
@@ -118,10 +145,10 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Result<String>> handleRuntimeException(RuntimeException e) {
+        // 阶段0：完整异常仅写入服务端日志，响应体不回显任何内部实现细节
         log.error("运行时异常: {}", e.getMessage(), e);
         return ResponseEntity.status(500)
-                .body(Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(),
-                        "服务器内部错误: " + e.getMessage()));
+                .body(Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), "服务器内部错误，请联系管理员"));
     }
 
     // ==================== 兜底异常 ====================
@@ -136,6 +163,15 @@ public class GlobalExceptionHandler {
                 .body(Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), "服务器内部错误"));
     }
 
+    /** 避免把 Bean Validation 的默认英文转换细节回显给客户端 */
+    private String friendlyMessage(FieldError fieldError) {
+        String msg = fieldError.getDefaultMessage();
+        if (msg == null || msg.contains("Failed to convert") || msg.contains("For input string")) {
+            return "格式不正确";
+        }
+        return msg;
+    }
+
     // ==================== 工具方法 ====================
 
     /**
@@ -147,6 +183,8 @@ public class GlobalExceptionHandler {
             case 401 -> 401;
             case 403 -> 403;
             case 404 -> 404;
+            case 429 -> 429;   // 验证码发送限流
+            case 500 -> 500;
             default  -> 500;
         };
     }

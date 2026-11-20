@@ -47,13 +47,15 @@ CREATE TABLE `elder` (
     `address`       VARCHAR(500)    DEFAULT NULL              COMMENT '地址',
     `residence_type` VARCHAR(50)    DEFAULT NULL              COMMENT '居住类型',
     `remark`        VARCHAR(1000)   DEFAULT NULL              COMMENT '备注',
+    `user_id`       BIGINT          DEFAULT NULL              COMMENT '关联账号ID(user.id)',
     `device_bound`  TINYINT(1)      DEFAULT 0                 COMMENT '是否绑定设备',
     `deleted`       INT             DEFAULT 0                 COMMENT '逻辑删除',
     `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     INDEX `idx_elder_name` (`name`),
-    INDEX `idx_elder_phone` (`phone`)
+    INDEX `idx_elder_phone` (`phone`),
+    INDEX `idx_elder_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人信息表';
 
 -- =====================================================
@@ -124,10 +126,14 @@ CREATE TABLE `caregiver` (
     `position`      VARCHAR(50)     DEFAULT NULL              COMMENT '职位',
     `phone`         VARCHAR(20)     DEFAULT NULL              COMMENT '手机号',
     `address`       VARCHAR(500)    DEFAULT NULL              COMMENT '地址',
+    `user_id`       BIGINT          DEFAULT NULL              COMMENT '关联账号ID(user.id)',
+    `community`     VARCHAR(100)    DEFAULT NULL              COMMENT '所属社区',
     `status`        VARCHAR(20)     DEFAULT 'ACTIVE'          COMMENT '状态: ACTIVE/INACTIVE',
     `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
-    INDEX `idx_caregiver_status` (`status`)
+    INDEX `idx_caregiver_status` (`status`),
+    INDEX `idx_caregiver_user` (`user_id`),
+    INDEX `idx_caregiver_community` (`community`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='护工信息表';
 
 -- =====================================================
@@ -141,6 +147,7 @@ CREATE TABLE `expert` (
     `specialty`     VARCHAR(200)    DEFAULT NULL              COMMENT '专长领域',
     `institution`   VARCHAR(200)    DEFAULT NULL              COMMENT '所属机构',
     `phone`         VARCHAR(20)     DEFAULT NULL              COMMENT '联系电话',
+    `user_id`       BIGINT          DEFAULT NULL              COMMENT '关联账号ID(user.id)',
     `status`        VARCHAR(20)     DEFAULT 'ACTIVE'          COMMENT '状态',
     `today_count`   INT             DEFAULT 0                 COMMENT '今日咨询数',
     `total_count`   INT             DEFAULT 0                 COMMENT '累计咨询数',
@@ -148,7 +155,8 @@ CREATE TABLE `expert` (
     `schedule`      VARCHAR(500)    DEFAULT NULL              COMMENT '排班信息',
     `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
-    INDEX `idx_expert_status` (`status`)
+    INDEX `idx_expert_status` (`status`),
+    INDEX `idx_expert_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家信息表';
 
 -- =====================================================
@@ -158,9 +166,11 @@ DROP TABLE IF EXISTS `consult`;
 CREATE TABLE `consult` (
     `id`            BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
     `elder_name`    VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `elder_id`      BIGINT          DEFAULT NULL              COMMENT '老人ID',
     `type`          VARCHAR(50)     DEFAULT NULL              COMMENT '咨询类型',
     `expert_id`     BIGINT          DEFAULT NULL              COMMENT '专家ID',
     `expert_name`   VARCHAR(100)    DEFAULT NULL              COMMENT '专家姓名',
+    `conversation_id` BIGINT        DEFAULT NULL              COMMENT '关联会话ID(conversation.id)',
     `status`        VARCHAR(30)     DEFAULT 'PENDING'         COMMENT '状态: PENDING/IN_PROGRESS/COMPLETED',
     `urgency`       VARCHAR(20)     DEFAULT NULL              COMMENT '紧急程度',
     `consult_time`  DATETIME        DEFAULT NULL              COMMENT '咨询时间',
@@ -168,10 +178,13 @@ CREATE TABLE `consult` (
     `reply`         TEXT            DEFAULT NULL              COMMENT '回复内容',
     `rating`        INT             DEFAULT NULL              COMMENT '评分(1-5)',
     `feedback`      VARCHAR(1000)   DEFAULT NULL              COMMENT '反馈',
+    `expert_note`   VARCHAR(1000)   DEFAULT NULL              COMMENT '专家备注(仅专家/管理员可见)',
     `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     INDEX `idx_consult_expert` (`expert_id`),
-    INDEX `idx_consult_status` (`status`)
+    INDEX `idx_consult_status` (`status`),
+    INDEX `idx_consult_elder` (`elder_id`),
+    INDEX `idx_consult_conversation` (`conversation_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='咨询记录表';
 
 -- =====================================================
@@ -190,12 +203,14 @@ CREATE TABLE `fall_record` (
     `treatment`     VARCHAR(1000)   DEFAULT NULL              COMMENT '处理措施',
     `recover_status` VARCHAR(30)    DEFAULT NULL              COMMENT '恢复状态',
     `handler`       VARCHAR(100)    DEFAULT NULL              COMMENT '处理人',
+    `handler_id`    BIGINT          DEFAULT NULL              COMMENT '处理人账号ID(user.id)',
     `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `is_deleted`    INT             DEFAULT 0                 COMMENT '逻辑删除',
     PRIMARY KEY (`id`),
     INDEX `idx_fall_elder` (`elder_id`),
-    INDEX `idx_fall_time` (`fall_time`)
+    INDEX `idx_fall_time` (`fall_time`),
+    INDEX `idx_fall_handler` (`handler_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='跌倒记录表';
 
 -- =====================================================
@@ -226,6 +241,7 @@ CREATE TABLE `health_note` (
     `elder_name`    VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
     `record_time`   DATETIME        DEFAULT NULL              COMMENT '记录时间',
     `recorder`      VARCHAR(100)    DEFAULT NULL              COMMENT '记录人',
+    `recorder_id`   BIGINT          DEFAULT NULL              COMMENT '记录人账号ID(user.id)',
     `note_type`     VARCHAR(50)     DEFAULT NULL              COMMENT '备注类型',
     `content`       TEXT            DEFAULT NULL              COMMENT '备注内容',
     `importance`    VARCHAR(20)     DEFAULT 'NORMAL'          COMMENT '重要程度: NORMAL/IMPORTANT/URGENT',
@@ -234,7 +250,8 @@ CREATE TABLE `health_note` (
     `update_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `is_deleted`    INT             DEFAULT 0                 COMMENT '逻辑删除',
     PRIMARY KEY (`id`),
-    INDEX `idx_note_elder` (`elder_id`)
+    INDEX `idx_note_elder` (`elder_id`),
+    INDEX `idx_note_recorder` (`recorder_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='健康备注表';
 
 -- =====================================================
@@ -249,6 +266,7 @@ CREATE TABLE `intervention` (
     `priority`          VARCHAR(20)     DEFAULT NULL              COMMENT '优先级: URGENT/IMPORTANT/NORMAL',
     `status`            VARCHAR(30)     DEFAULT 'DRAFT'           COMMENT '状态: DRAFT/PENDING/APPROVED/ONGOING/COMPLETED/TERMINATED',
     `leader`            VARCHAR(100)    DEFAULT NULL              COMMENT '负责人',
+    `leader_id`         BIGINT          DEFAULT NULL              COMMENT '负责人账号ID(user.id)',
     `target_group`      VARCHAR(200)    DEFAULT NULL              COMMENT '适用对象',
     `total_weeks`       INT             DEFAULT NULL              COMMENT '执行周期(周)',
     `current_week`      INT             DEFAULT 0                 COMMENT '当前周数',
@@ -270,7 +288,8 @@ CREATE TABLE `intervention` (
     `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     INDEX `idx_intervention_status` (`status`),
-    INDEX `idx_intervention_code` (`code`)
+    INDEX `idx_intervention_code` (`code`),
+    INDEX `idx_intervention_leader` (`leader_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='干预方案表';
 
 -- =====================================================
@@ -282,7 +301,9 @@ CREATE TABLE `intervention_record` (
     `intervention_id`   BIGINT          DEFAULT NULL              COMMENT '关联干预方案ID',
     `execute_date`      DATETIME        DEFAULT NULL              COMMENT '执行日期',
     `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
     `executor`          VARCHAR(100)    DEFAULT NULL              COMMENT '执行人',
+    `executor_id`       BIGINT          DEFAULT NULL              COMMENT '执行人账号ID(user.id)',
     `status`            VARCHAR(30)     DEFAULT NULL              COMMENT '执行状态: NORMAL/PARTIAL/SKIPPED/ABNORMAL',
     `rating`            INT             DEFAULT NULL              COMMENT '评分(1-5)',
     `remark`            VARCHAR(1000)   DEFAULT NULL              COMMENT '备注',
@@ -290,7 +311,9 @@ CREATE TABLE `intervention_record` (
     `attachments`       JSON            DEFAULT NULL              COMMENT '附件数组',
     `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
-    INDEX `idx_record_intervention` (`intervention_id`)
+    INDEX `idx_record_intervention` (`intervention_id`),
+    INDEX `idx_record_executor` (`executor_id`),
+    INDEX `idx_record_elder` (`elder_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='干预执行记录表';
 
 -- =====================================================
@@ -369,21 +392,8 @@ CREATE TABLE `menu` (
     INDEX `idx_menu_parent` (`parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='菜单权限表';
 
--- 预置菜单数据
-INSERT INTO `menu` (`id`, `name`, `path`, `icon`, `parent_id`, `visible`, `sort`) VALUES
-(1, '首页',       '/dashboard',         'dashboard',    0, 1, 1),
-(2, '老人管理',   '/elder',             'user',         0, 1, 2),
-(3, '设备管理',   '/device',            'device',       0, 1, 3),
-(4, '告警中心',   '/alert',             'bell',         0, 1, 4),
-(5, '健康监测',   '/health',            'heart',        0, 1, 5),
-(6, '空间管理',   '/space',             'building',     0, 1, 6),
-(7, '干预方案',   '/intervention',      'file-text',    0, 1, 7),
-(8, '咨询管理',   '/consult',           'message',      0, 1, 8),
-(9, '护工管理',   '/caregiver',         'user-check',   0, 1, 9),
-(10, '专家管理',  '/expert',            'star',         0, 1, 10),
-(11, '社区联动',  '/community',         'share',        0, 1, 11),
-(12, '数据管理',  '/data',              'database',     0, 1, 12),
-(13, '系统设置',  '/settings',          'settings',     0, 1, 13);
+-- 说明：菜单与角色-菜单映射（menu / role_menu）统一由 seed_data.sql 负责插入，
+-- init.sql 不再预置菜单数据（原 13 条旧菜单已废弃，改为按角色分端的完整菜单体系）。
 
 -- =====================================================
 -- 17. 模型参数表 (model_param)
@@ -508,6 +518,7 @@ CREATE TABLE `schedule_task` (
     `task_code`         VARCHAR(50)     DEFAULT NULL              COMMENT '任务编号',
     `task_type`         VARCHAR(50)     DEFAULT NULL              COMMENT '任务类型',
     `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
     `location`          VARCHAR(255)    DEFAULT NULL              COMMENT '位置',
     `priority`          VARCHAR(20)     DEFAULT NULL              COMMENT '优先级',
     `task_status`       VARCHAR(30)     DEFAULT NULL              COMMENT '任务状态',
@@ -516,6 +527,7 @@ CREATE TABLE `schedule_task` (
     `relate_device_sn`  VARCHAR(100)    DEFAULT NULL              COMMENT '关联设备序列号',
     `handle_result`     VARCHAR(500)    DEFAULT NULL              COMMENT '处理结果',
     `handler`           VARCHAR(100)    DEFAULT NULL              COMMENT '处理人',
+    `handler_id`        BIGINT          DEFAULT NULL              COMMENT '处理人账号ID(user.id)',
     `complete_time`     DATETIME        DEFAULT NULL              COMMENT '完成时间',
     `note`              VARCHAR(1000)   DEFAULT NULL              COMMENT '备注',
     `task_date`         DATETIME        DEFAULT NULL              COMMENT '任务日期',
@@ -524,7 +536,9 @@ CREATE TABLE `schedule_task` (
     `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
     PRIMARY KEY (`id`),
     INDEX `idx_task_code` (`task_code`),
-    INDEX `idx_task_status` (`task_status`)
+    INDEX `idx_task_status` (`task_status`),
+    INDEX `idx_task_elder` (`elder_id`),
+    INDEX `idx_task_handler` (`handler_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='定时任务/调度任务表';
 
 -- =====================================================
@@ -581,30 +595,281 @@ CREATE TABLE `space_inspection` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='空间安全检查记录表';
 
 -- =====================================================
--- 插入默认管理员用户 (密码: admin123 的MD5值)
+-- 说明：所有演示数据（用户/老人/空间/设备/专家/护工等）统一由 seed_data.sql 负责插入，
+-- init.sql 仅负责建表，不再重复插入任何默认数据，避免：
+--   1) device_sn 唯一索引冲突（init 与 seed 重复插入同一设备）；
+--   2) elder.phone / user.phone 重复导致登录 selectOne 抛 TooManyResultsException。
+-- 演示账号密码统一为 123456（MD5: e10adc3949ba59abbe56e057f20f883e），user.status 用小写 active。
 -- =====================================================
-INSERT INTO `user` (`username`, `password`, `real_name`, `role`, `status`, `account`, `phone`, `create_time`)
-VALUES ('admin', '0192023a7bbd73250516f069df18b500', '系统管理员', 'admin', 'active', 'admin', '13800000000', NOW());
 
--- 插入默认老人测试数据
-INSERT INTO `elder` (`name`, `gender`, `age`, `phone`, `address`, `residence_type`, `create_time`) VALUES
-('张建国', 'MALE', 78, '13900001111', '北京市朝阳区XX小区1号楼101', 'PERMANENT', NOW()),
-('李秀英', 'FEMALE', 82, '13900002222', '北京市朝阳区XX小区2号楼203', 'PERMANENT', NOW()),
-('王德发', 'MALE', 75, '13900003333', '北京市朝阳区XX小区3号楼305', 'TEMPORARY', NOW());
+-- =====================================================
+-- 以下为「多端扩展」新增表（26~36），角色取值约定：
+--   admin 管理员 / expert 专家 / caregiver 陪护 / supervisor 陪护主管 / elder 老人（家属代办）
+-- =====================================================
 
--- 插入默认空间数据
-INSERT INTO `space` (`code`, `name`, `building`, `floor`, `layout`, `area`, `occupancy_status`, `status`, `safety_rating`, `create_time`) VALUES
-('A-101', 'A栋101室', 'A栋', '1层', '一室一厅', 45.0, 'VACANT', 'NORMAL', 'A', NOW()),
-('A-102', 'A栋102室', 'A栋', '1层', '一室一厅', 45.0, 'VACANT', 'NORMAL', 'A', NOW()),
-('B-201', 'B栋201室', 'B栋', '2层', '两室一厅', 62.5, 'VACANT', 'NORMAL', 'B', NOW()),
-('B-202', 'B栋202室', 'B栋', '2层', '一室一厅', 48.0, 'VACANT', 'NORMAL', 'B', NOW()),
-('C-301', 'C栋301室', 'C栋', '3层', '单人房', 30.0, 'VACANT', 'NORMAL', 'A', NOW());
+-- =====================================================
+-- 26. 角色-菜单权限映射表 (role_menu)
+-- =====================================================
+DROP TABLE IF EXISTS `role_menu`;
+CREATE TABLE `role_menu` (
+    `id`            BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `role`          VARCHAR(50)     NOT NULL                 COMMENT '角色: admin/expert/caregiver/supervisor/elder',
+    `menu_id`       BIGINT          NOT NULL                 COMMENT '菜单ID(关联menu.id)',
+    `create_time`   DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_role_menu_role` (`role`),
+    INDEX `idx_role_menu_menu` (`menu_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色-菜单权限映射表';
 
--- 插入默认设备数据
-INSERT INTO `device` (`device_sn`, `device_name`, `device_type`, `status`, `location`, `create_time`) VALUES
-('DEV-2024-001', '智能手环-001', 'WEARABLE', 'ONLINE', '仓库', NOW()),
-('DEV-2024-002', '跌倒检测摄像头-001', 'CAMERA', 'ONLINE', 'A栋走廊', NOW()),
-('DEV-2024-003', '环境传感器-001', 'SENSOR', 'ONLINE', 'B栋大厅', NOW());
+-- =====================================================
+-- 27. 会话表 (conversation) — 专家咨询/联系陪护的聊天会话头
+-- =====================================================
+DROP TABLE IF EXISTS `conversation`;
+CREATE TABLE `conversation` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `type`              VARCHAR(20)     DEFAULT NULL              COMMENT '会话类型: CONSULT专家咨询/CAREGIVER联系陪护',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '关联老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `family_user_id`    BIGINT          DEFAULT NULL              COMMENT '家属端账号ID(user.id)',
+    `family_name`       VARCHAR(100)    DEFAULT NULL              COMMENT '家属姓名',
+    `service_user_id`   BIGINT          DEFAULT NULL              COMMENT '服务方账号ID(user.id, 专家或陪护)',
+    `service_id`        BIGINT          DEFAULT NULL              COMMENT '服务方业务ID(expert.id/caregiver.id)',
+    `service_name`      VARCHAR(100)    DEFAULT NULL              COMMENT '服务方姓名',
+    `status`            VARCHAR(20)     DEFAULT 'OPEN'            COMMENT '状态: OPEN/CLOSED',
+    `last_message`      VARCHAR(500)    DEFAULT NULL              COMMENT '最后一条消息摘要',
+    `last_message_time` DATETIME        DEFAULT NULL              COMMENT '最后消息时间',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除: 0=未删除, 1=已删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_conv_elder` (`elder_id`),
+    INDEX `idx_conv_family` (`family_user_id`),
+    INDEX `idx_conv_service` (`service_user_id`),
+    INDEX `idx_conv_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话表';
+
+-- =====================================================
+-- 28. 消息表 (message) — 会话内消息流
+-- =====================================================
+DROP TABLE IF EXISTS `message`;
+CREATE TABLE `message` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `conversation_id`   BIGINT          NOT NULL                 COMMENT '会话ID(关联conversation.id)',
+    `sender_id`         BIGINT          DEFAULT NULL              COMMENT '发送人账号ID(user.id)',
+    `sender_role`       VARCHAR(20)     DEFAULT NULL              COMMENT '发送人角色',
+    `sender_name`       VARCHAR(100)    DEFAULT NULL              COMMENT '发送人姓名',
+    `content`           TEXT            DEFAULT NULL              COMMENT '文本内容',
+    `content_type`      VARCHAR(20)     DEFAULT 'TEXT'            COMMENT '消息类型: TEXT/IMAGE/FILE/SYSTEM',
+    `is_read`           INT             DEFAULT 0                 COMMENT '是否已读: 0=未读, 1=已读',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_msg_conv` (`conversation_id`),
+    INDEX `idx_msg_sender` (`sender_id`),
+    INDEX `idx_msg_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
+
+-- =====================================================
+-- 29. 消息附件表 (message_attachment) — 图片/报告
+-- =====================================================
+DROP TABLE IF EXISTS `message_attachment`;
+CREATE TABLE `message_attachment` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `message_id`        BIGINT          DEFAULT NULL              COMMENT '消息ID(关联message.id)',
+    `conversation_id`   BIGINT          DEFAULT NULL              COMMENT '会话ID(冗余, 便于查询)',
+    `file_name`         VARCHAR(255)    DEFAULT NULL              COMMENT '原文件名',
+    `file_type`         VARCHAR(50)     DEFAULT NULL              COMMENT '文件类型: image/jpeg、application/pdf 等',
+    `file_path`         VARCHAR(500)    DEFAULT NULL              COMMENT '存储相对路径',
+    `file_size`         BIGINT          DEFAULT NULL              COMMENT '文件大小(字节)',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_att_msg` (`message_id`),
+    INDEX `idx_att_conv` (`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息附件表';
+
+-- =====================================================
+-- 30. 老人-陪护关系表 (elder_caregiver)
+-- =====================================================
+DROP TABLE IF EXISTS `elder_caregiver`;
+CREATE TABLE `elder_caregiver` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `caregiver_id`      BIGINT          DEFAULT NULL              COMMENT '陪护ID(caregiver.id)',
+    `caregiver_name`    VARCHAR(100)    DEFAULT NULL              COMMENT '陪护姓名',
+    `service_type`      VARCHAR(50)     DEFAULT NULL              COMMENT '服务类型: DAILY_CARE/REHAB/MEDICATION 等',
+    `start_date`        DATETIME        DEFAULT NULL              COMMENT '服务开始时间',
+    `end_date`          DATETIME        DEFAULT NULL              COMMENT '服务结束时间(空=进行中)',
+    `status`            VARCHAR(20)     DEFAULT 'ACTIVE'          COMMENT '状态: ACTIVE/INACTIVE',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_ec_elder` (`elder_id`),
+    INDEX `idx_ec_caregiver` (`caregiver_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人-陪护关系表';
+
+-- =====================================================
+-- 31. 老人-专家关系表 (elder_expert)
+-- =====================================================
+DROP TABLE IF EXISTS `elder_expert`;
+CREATE TABLE `elder_expert` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `expert_id`         BIGINT          DEFAULT NULL              COMMENT '专家ID(expert.id)',
+    `expert_name`       VARCHAR(100)    DEFAULT NULL              COMMENT '专家姓名',
+    `relation_type`     VARCHAR(50)     DEFAULT NULL              COMMENT '关系类型: CONSULTING咨询/FOLLOW_UP随访',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_ee_elder` (`elder_id`),
+    INDEX `idx_ee_expert` (`expert_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人-专家关系表';
+
+-- =====================================================
+-- 32. 老人-家属关系表 (elder_family)
+-- =====================================================
+DROP TABLE IF EXISTS `elder_family`;
+CREATE TABLE `elder_family` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `family_name`       VARCHAR(100)    DEFAULT NULL              COMMENT '家属姓名',
+    `relationship`      VARCHAR(50)     DEFAULT NULL              COMMENT '与老人关系: SON/DAUGHTER/SPOUSE 等',
+    `phone`             VARCHAR(20)     DEFAULT NULL              COMMENT '家属电话',
+    `family_user_id`    BIGINT          DEFAULT NULL              COMMENT '关联家属端账号ID(user.id, 可空)',
+    `is_emergency`      TINYINT(1)      DEFAULT 0                 COMMENT '是否紧急联系人',
+    `is_push`           TINYINT(1)      DEFAULT 1                 COMMENT '是否接收推送',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_ef_elder` (`elder_id`),
+    INDEX `idx_ef_family_user` (`family_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人-家属关系表';
+
+-- =====================================================
+-- 33. 专家排班/请假申请表 (expert_schedule_apply)
+-- =====================================================
+DROP TABLE IF EXISTS `expert_schedule_apply`;
+CREATE TABLE `expert_schedule_apply` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `expert_id`         BIGINT          DEFAULT NULL              COMMENT '专家ID(expert.id)',
+    `expert_name`       VARCHAR(100)    DEFAULT NULL              COMMENT '专家姓名',
+    `apply_type`        VARCHAR(20)     DEFAULT NULL              COMMENT '申请类型: LEAVE请假/SHIFT换班/SCHEDULE排班变更',
+    `start_time`        DATETIME        DEFAULT NULL              COMMENT '开始时间',
+    `end_time`          DATETIME        DEFAULT NULL              COMMENT '结束时间',
+    `reason`            VARCHAR(500)    DEFAULT NULL              COMMENT '申请原因',
+    `status`            VARCHAR(20)     DEFAULT 'PENDING'         COMMENT '状态: PENDING/APPROVED/REJECTED',
+    `reviewer_id`       BIGINT          DEFAULT NULL              COMMENT '审批人账号ID(user.id)',
+    `reviewer_name`     VARCHAR(100)    DEFAULT NULL              COMMENT '审批人姓名',
+    `review_time`       DATETIME        DEFAULT NULL              COMMENT '审批时间',
+    `review_comment`    VARCHAR(500)    DEFAULT NULL              COMMENT '审批意见',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_esa_expert` (`expert_id`),
+    INDEX `idx_esa_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='专家排班/请假申请表';
+
+-- =====================================================
+-- 34. 陪护排班表 (caregiver_schedule) — 课程表式
+-- =====================================================
+DROP TABLE IF EXISTS `caregiver_schedule`;
+CREATE TABLE `caregiver_schedule` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `caregiver_id`      BIGINT          DEFAULT NULL              COMMENT '陪护ID(caregiver.id)',
+    `caregiver_name`    VARCHAR(100)    DEFAULT NULL              COMMENT '陪护姓名',
+    `community`         VARCHAR(100)    DEFAULT NULL              COMMENT '所属社区',
+    `work_date`         DATE            DEFAULT NULL              COMMENT '排班日期',
+    `shift`             VARCHAR(20)     DEFAULT NULL              COMMENT '班次: MORNING/AFTERNOON/NIGHT/FULL/REST/LEAVE',
+    `start_time`        VARCHAR(10)     DEFAULT NULL              COMMENT '上班时间(HH:mm)',
+    `end_time`          VARCHAR(10)     DEFAULT NULL              COMMENT '下班时间(HH:mm)',
+    `note`              VARCHAR(200)    DEFAULT NULL              COMMENT '备注',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_cs_caregiver` (`caregiver_id`),
+    INDEX `idx_cs_community` (`community`),
+    INDEX `idx_cs_date` (`work_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='陪护排班表';
+
+-- =====================================================
+-- 34.1 陪护请假/换班申请表 (caregiver_schedule_apply)
+-- =====================================================
+DROP TABLE IF EXISTS `caregiver_schedule_apply`;
+CREATE TABLE `caregiver_schedule_apply` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `caregiver_id`      BIGINT          DEFAULT NULL              COMMENT '陪护ID(caregiver.id)',
+    `caregiver_name`    VARCHAR(100)    DEFAULT NULL              COMMENT '陪护姓名',
+    `community`         VARCHAR(100)    DEFAULT NULL              COMMENT '所属社区',
+    `apply_type`        VARCHAR(20)     DEFAULT NULL              COMMENT '申请类型: LEAVE请假/SHIFT换班',
+    `start_time`        DATETIME        DEFAULT NULL              COMMENT '开始时间',
+    `end_time`          DATETIME        DEFAULT NULL              COMMENT '结束时间',
+    `reason`            VARCHAR(500)    DEFAULT NULL              COMMENT '申请原因',
+    `status`            VARCHAR(20)     DEFAULT 'PENDING'         COMMENT '状态: PENDING/APPROVED/REJECTED',
+    `reviewer_id`       BIGINT          DEFAULT NULL              COMMENT '审批人账号ID(user.id)',
+    `reviewer_name`     VARCHAR(100)    DEFAULT NULL              COMMENT '审批人姓名',
+    `review_time`       DATETIME        DEFAULT NULL              COMMENT '审批时间',
+    `review_comment`    VARCHAR(500)    DEFAULT NULL              COMMENT '审批意见',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_csa_caregiver` (`caregiver_id`),
+    INDEX `idx_csa_community` (`community`),
+    INDEX `idx_csa_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='陪护请假/换班申请表';
+
+-- =====================================================
+-- 35. 健康指标表 (health_metric) — 血压/心率/血糖/血氧/体温
+-- =====================================================
+DROP TABLE IF EXISTS `health_metric`;
+CREATE TABLE `health_metric` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `metric_type`       VARCHAR(30)     DEFAULT NULL              COMMENT '指标类型: BLOOD_PRESSURE/HEART_RATE/BLOOD_SUGAR/BLOOD_OXYGEN/TEMPERATURE',
+    `systolic`          INT             DEFAULT NULL              COMMENT '收缩压(mmHg, 血压专用)',
+    `diastolic`         INT             DEFAULT NULL              COMMENT '舒张压(mmHg, 血压专用)',
+    `value`             DECIMAL(10,2)   DEFAULT NULL              COMMENT '指标数值(心率/血糖/血氧/体温)',
+    `unit`              VARCHAR(20)     DEFAULT NULL              COMMENT '单位: mmHg/bpm/mmol/L/百分比/摄氏度',
+    `source`            VARCHAR(20)     DEFAULT 'SIMULATED'       COMMENT '数据来源: DEVICE/SIMULATED/MANUAL',
+    `measure_time`      DATETIME        DEFAULT NULL              COMMENT '测量时间',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    INDEX `idx_hm_elder` (`elder_id`),
+    INDEX `idx_hm_type` (`metric_type`),
+    INDEX `idx_hm_time` (`measure_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='老人健康指标表';
+
+-- =====================================================
+-- 36. 一键呼救记录表 (sos_record)
+-- =====================================================
+DROP TABLE IF EXISTS `sos_record`;
+CREATE TABLE `sos_record` (
+    `id`                BIGINT          NOT NULL AUTO_INCREMENT  COMMENT '主键ID',
+    `elder_id`          BIGINT          DEFAULT NULL              COMMENT '老人ID',
+    `elder_name`        VARCHAR(100)    DEFAULT NULL              COMMENT '老人姓名',
+    `family_user_id`    BIGINT          DEFAULT NULL              COMMENT '触发人家属账号ID(user.id)',
+    `sos_time`          DATETIME        DEFAULT NULL              COMMENT '呼救时间',
+    `location`          VARCHAR(255)    DEFAULT NULL              COMMENT '位置',
+    `status`            VARCHAR(20)     DEFAULT 'PENDING'         COMMENT '状态: PENDING/RESPONDING/RESOLVED',
+    `handler_id`        BIGINT          DEFAULT NULL              COMMENT '处理人账号ID(user.id)',
+    `handler_name`      VARCHAR(100)    DEFAULT NULL              COMMENT '处理人姓名',
+    `handle_time`       DATETIME        DEFAULT NULL              COMMENT '处理时间',
+    `note`              VARCHAR(500)    DEFAULT NULL              COMMENT '备注',
+    `relate_alert_code` VARCHAR(50)     DEFAULT NULL              COMMENT '关联告警编号',
+    `create_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `is_deleted`        INT             DEFAULT 0                 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    INDEX `idx_sos_elder` (`elder_id`),
+    INDEX `idx_sos_status` (`status`),
+    INDEX `idx_sos_time` (`sos_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='一键呼救记录表';
 
 -- =====================================================
 -- 初始化完成

@@ -15,10 +15,12 @@ import com.example.elderly.vo.UserInfoVO;
 import com.example.elderly.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.util.DigestUtils;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     /** 重置后的默认密码（仅用于演示环境，生产请通过环境变量 APP_RESET_PASSWORD 覆盖）。 */
     @Value("${app.user.reset-password:123456}")
@@ -51,9 +54,30 @@ public class UserServiceImpl implements UserService {
         return Result.success(vo);
     }
 
+    private static final Map<String, String[]> ROLE_PERMISSIONS = new HashMap<>();
+    static {
+        ROLE_PERMISSIONS.put("admin", new String[]{"system:user:list","system:user:add","system:user:edit","system:user:delete","system:menu:manage","alert:handle","consult:assign","schedule:manage","model:manage","backup:manage"});
+        ROLE_PERMISSIONS.put("expert", new String[]{"consult:reply","schedule:apply","elder:view","intervention:suggest"});
+        ROLE_PERMISSIONS.put("caregiver", new String[]{"task:execute","alert:handle","health:record","gait:record","fall:record","space:inspect"});
+        ROLE_PERMISSIONS.put("supervisor", new String[]{"task:execute","alert:handle","health:record","space:inspect","schedule:manage","apply:approve","team:view"});
+        ROLE_PERMISSIONS.put("elder", new String[]{"sos:trigger","consult:create","message:send","elder:self:view"});
+    }
+
     @Override
     public Result<String[]> getPermission() {
-        String[] perms={"system:user:list","system:user:add","system:user:edit"};
+        Long userId;
+        try {
+            userId = LoginUserUtil.getUserId();
+        } catch (RuntimeException e) {
+            return Result.fail(401, "用户未登录");
+        }
+        User user = userMapper.selectById(userId);
+        String role = user == null ? "staff" : user.getRole();
+        // staff 为管理员端工作人员，复用管理员权限
+        if ("staff".equals(role)) {
+            role = "admin";
+        }
+        String[] perms = ROLE_PERMISSIONS.getOrDefault(role, new String[0]);
         return Result.success(perms);
     }
 
@@ -97,7 +121,7 @@ public class UserServiceImpl implements UserService {
         user.setCommunity(dto.getCommunity());
         user.setStatus(UserStatusEnum.ACTIVE.getCode());
         if(dto.getPassword()!=null){
-            user.setPassword(DigestUtils.md5DigestAsHex(dto.getPassword().getBytes()));
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
         userMapper.insert(user);
         return Result.success(user.getId());
@@ -147,7 +171,7 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             return Result.fail(404, "用户不存在");
         }
-        String initPassword = DigestUtils.md5DigestAsHex(resetPassword.getBytes());
+        String initPassword = passwordEncoder.encode(resetPassword);
         user.setPassword(initPassword);
         userMapper.updateById(user);
         return Result.success("密码重置成功，新密码为：" + resetPassword);

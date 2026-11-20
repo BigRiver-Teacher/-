@@ -126,21 +126,23 @@ v2 八特征（`src/feature_extraction_v2.py`，按 LSTM 输入顺序）：
 
 | 配置项 | 默认值 | 说明 |
 | --- | --- | --- |
-| `FALL_MODEL_DIR` | `models` | 模型工程根目录，相对 `algorithm/`，也可写绝对路径 |
+| `FALL_MODEL_DIR` | `models` | 模型工程根目录，相对 `algorithm/`（也可写绝对路径），启动时 `resolve()` 为绝对路径 |
 | `FALL_YOLO_MODEL` | `yolo11n-pose-fallen.pt` | 姿态权重文件名；缺失自动回退 `yolo11n-pose.pt` |
-| `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | v2 八特征二分类；改 `models/checkpoints/best.pth` 即回退 v1 三分类 |
+| `FALL_LSTM_CHECKPOINT` | `models/checkpoints/v2_hard_samples_20260903/last.pth` | 默认 v2 八特征二分类（v2 缺失时自动回退 `models/checkpoints/best.pth`）；显式改为 v1 即三分类 |
 | `FALL_TRACKER_CONFIG` | `configs/botsort.yaml` | BoT-SORT 跟踪器配置 |
 | `FALL_DEVICE` | 空 | `cuda` / `cpu` / 留空自动选择 |
-| `FALL_CONFIDENCE_THRESHOLD` | `0.40` | 跌倒置信度阈值 |
-| `FALL_COOLDOWN_FRAMES` | `90` | 两次告警的最小间隔帧数 |
+| `FALL_CONFIDENCE_THRESHOLD` | `0.40` | 服务级跌倒置信度阈值（请求可覆盖） |
+| `FALL_COOLDOWN_FRAMES` | `90` | 服务级告警冷却帧数（请求可覆盖） |
 | `FALL_MAX_WORKERS` | `1` | 异步任务线程数（计算密集型，串行） |
 | `FALL_UPLOAD_DIR` | `uploads` | 上传视频临时目录 |
 | `FALL_OUTPUT_DIR` | `outputs` | 标注视频输出目录 |
+| `FALL_API_KEY` | 空 | 接口鉴权 Key。**留空不启用鉴权**；设置后除 `/health`、`/docs`、`/redoc`、`/openapi.json` 外均需 `X-API-Key` 头，缺失或错误返回 401 |
+| `FALL_MAX_UPLOAD_MB` | `500` | 上传视频大小上限（MB），超限返回 413 |
 | `FALL_HOST` / `FALL_PORT` | `0.0.0.0` / `8001` | 监听地址与端口 |
 | `FALL_RELOAD` | `false` | 开发热重载 |
 
-> 阈值与冷却只在服务启动时读取，属服务级参数；请求里的 `confidence` / `cooldown` 表单字段
-> 当前不会覆盖服务级配置（见第十节）。
+> 请求级 `confidence` / `cooldown` 表单字段会**覆盖本次推理**的服务级阈值与冷却，推理结束自动恢复默认值
+> （覆盖发生在推理锁内，并发请求之间互不影响）。范围：`confidence` ∈ (0, 1]，`cooldown` ∈ [0, 100000]，越界返回 400。
 
 ---
 
@@ -159,20 +161,28 @@ v2 八特征（`src/feature_extraction_v2.py`，按 LSTM 输入顺序）：
 
 Swagger UI：http://localhost:8001/docs
 
+> **鉴权**：设置 `FALL_API_KEY` 后，除 `/health` 与文档页外所有接口都要求请求头 `X-API-Key: <key>`，
+> 缺失或错误统一返回 `401 {"code":401,"message":"无效的 API Key",...}`。未设置则保持匿名可调用（本地演示默认）。
+
 | 接口 | 方法 | 说明 |
 | --- | --- | --- |
-| `/api/fall-detection/health` | GET | 健康检查，返回模型加载状态与生效权重 |
+| `/api/fall-detection/health` | GET | 健康检查，返回模型加载状态与生效权重（**始终匿名**，供探活） |
 | `/api/fall-detection/models/status` | GET | 模型路径、是否存在、是否回退 |
-| `/api/fall-detection/detect` | POST | 同步检测（上传视频，等待结果） |
-| `/api/fall-detection/detect/file` | POST | 按服务器本地绝对路径检测 |
+| `/api/fall-detection/detect` | POST | 同步检测（上传视频，等待结果）；可带 `confidence` / `cooldown` 覆盖本次推理参数 |
+| `/api/fall-detection/detect/file` | POST | 按服务器本地路径检测，**仅允许 `uploads/`、`outputs/` 目录内的视频**，其他路径 400 |
 | `/api/fall-detection/output/{file_name}` | GET | 下载标注视频（`video/mp4`） |
 | `/api/fall-detection/detect/async` | POST | 异步检测（当前版本不可用，见第十节） |
 | `/api/fall-detection/detect/task/{task_id}` | GET | 查询异步任务状态 |
 
+**上传校验**：先校验扩展名（`.mp4/.avi/.mov/.mkv/.webm/.flv`），再校验文件头魔数
+（MP4 `ftyp`、AVI/MOV `RIFF`、MKV/WebM `EBML`、FLV `FLV`），最后校验大小（`FALL_MAX_UPLOAD_MB`）。
+非视频内容伪装扩展名返回 400「文件内容不是可识别的视频格式」，超限返回 413。
+
 同步检测并返回标注视频：
 
     curl -X POST http://localhost:8001/api/fall-detection/detect \
-      -F "file=@sample.mp4" -F "with_output=true"
+      -H "X-API-Key: <你的key>" \
+      -F "file=@sample.mp4" -F "with_output=true" -F "confidence=0.55"
 
 `with_output` 默认 `false`，设为 `true` 才会生成标注视频，响应中通过 `output_url` 下载。
 
@@ -239,8 +249,8 @@ Swagger UI：http://localhost:8001/docs
 1. **异步接口不可用**：流水线在 `process_video` 中注册 `signal` 处理器，在 FastAPI 的线程池里
    调用会抛 `signal only works in main thread of the main interpreter`，`/detect/async` 任务直接
    `failed`。请使用同步 `/detect` 或 `/detect/file`。
-2. **请求级阈值不生效**：`confidence` / `cooldown` 表单字段未透传到流水线，实际以 `.env`
-   （`FALL_CONFIDENCE_THRESHOLD` / `FALL_COOLDOWN_FRAMES`）为准。
+2. **请求级参数的作用域**：`confidence` / `cooldown` 只覆盖**本次请求**的推理，在推理锁内生效并
+   结束后恢复；并发请求不会互相污染，但也不会改变服务级 `FALL_*` 配置（重启后仍以 `.env` 为准）。
 3. **推理分辨率**：检测器未显式设置 `imgsz`，默认 640，而姿态权重按 1024 微调，远处小目标召回会受影响。
 4. **速度**：CPU 约 12–15 帧/秒，60 秒 1080p 视频约 2 分钟，长视频请直接调用接口并放宽超时。
 5. **v2 分类器为小样本训练**（813 条、train-only，无独立验证集），指标不宜作为泛化性能对外承诺；
@@ -269,4 +279,9 @@ Swagger UI：http://localhost:8001/docs
 1. 管理端上传视频后调用 `/detect`，取 `events` 与 `output_url` 展示、回放；
 2. 后端在 `events` 非空时调用现有 `/api/alert` 写入告警，进入人工处置流程。
 
-生产部署请将 CORS `allow_origins` 收窄为前端域名白名单，并为接口增加鉴权。
+生产部署建议：
+
+1. 设置随机 `FALL_API_KEY` 开启鉴权（`/health` 保持匿名供监控探活）；
+2. 把 CORS `allow_origins` 由 `*` 收窄为前端域名白名单（当前代码仍为 `*` + `allow_credentials=True`，
+   属待收紧项，见 `docs/RELEASE_CHECKLIST.md` 的已知遗留）；
+3. `detect/file` 仅接受 `uploads/`、`outputs/` 内路径，若需接入外部存储请挂载到这两个目录之下。

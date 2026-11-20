@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.elderly.common.PageResult;
 import com.example.elderly.common.Result;
@@ -27,7 +28,7 @@ public class ScheduleTaskController {
     public Result<ScheduleTask> getDetail(@PathVariable @NotNull(message = "id不能为空")Long id){
         ScheduleTask task = scheduleTaskService.getTaskDetail(id);
         if(task==null){
-            return Result.fail(404,"任务不存在");
+            throw new BusinessException(404,"任务不存在");
         }
         return Result.success(task);
     }
@@ -36,7 +37,7 @@ public class ScheduleTaskController {
                                     @RequestBody @Validated ScheduleTaskProcessDTO dto) {
         Boolean flag = scheduleTaskService.processTask(id, dto);
         if(!flag){
-            return Result.fail(400, "处理失败");
+            throw new BusinessException(400, "处理失败");
         }
         return Result.success();
     }

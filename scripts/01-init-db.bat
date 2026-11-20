@@ -19,7 +19,7 @@ if errorlevel 1 (
 
 rem 数据库账号密码：优先使用环境变量 DB_USER / DB_PASSWORD，未设置时用本地演示默认值
 if "%DB_USER%"=="" set "DB_USER=root"
-if "%DB_PASSWORD%"=="" set "DB_PASSWORD=change-me"
+if "%DB_PASSWORD%"=="" set "DB_PASSWORD=123456"
 
 echo [INFO] DB user: %DB_USER%  (override with DB_USER / DB_PASSWORD env vars)
 mysql -u%DB_USER% -p%DB_PASSWORD% --default-character-set=utf8mb4 -e "source %SQL1%"

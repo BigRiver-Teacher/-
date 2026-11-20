@@ -22,6 +22,8 @@ public class Expert {
     private String institution;
     @Schema(description = "联系电话")
     private String phone;
+    @Schema(description = "关联账号ID(user.id)")
+    private Long userId;
     private String status;
     @Schema(description = "今日咨询数")
     private Integer todayCount;

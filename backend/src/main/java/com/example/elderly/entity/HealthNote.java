@@ -16,6 +16,8 @@ public class HealthNote extends BaseEntity {
     private LocalDateTime recordTime;
     @Schema(description = "记录人")
     private String recorder;
+    @Schema(description = "记录人账号ID(user.id)")
+    private Long recorderId;
     @Schema(description = "备注类型")
     private String noteType;
     @Schema(description = "备注内容")

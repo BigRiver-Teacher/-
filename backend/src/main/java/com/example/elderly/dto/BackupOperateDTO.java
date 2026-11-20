@@ -9,6 +9,7 @@ import lombok.Data;
 @Data
 @Schema(description = "备份操作请求")
     public class BackupOperateDTO {
-    @Schema(description = "咨询类型")
+    @NotNull(message = "备份类型不能为空")
+    @Schema(description = "备份类型 AUTO/MANUAL")
     private BackupTypeEnum type;
 }

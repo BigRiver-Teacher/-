@@ -1,9 +1,10 @@
 package com.example.elderly.config;
 
+import com.example.elderly.common.Result;
 import com.example.elderly.util.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import jakarta.annotation.Resource;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,8 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 /**
- * JWT 认证过滤器
- * 从 Authorization header 提取 Bearer token，解析后将 userId 注入到当前请求上下文
+ * JWT 认证过滤器（默认拒绝）。
+ *
+ * <p>策略：仅白名单路径（登录注册、接口文档、上传的静态附件）直接放行；
+ * 其余所有请求必须携带有效的 Bearer Token，否则在过滤器内直接返回 401，
+ * 不再把请求透传给 Controller，避免"部分接口无 Token 也能 200"的越权问题。</p>
+ *
+ * <p>Token 解析成功后把 userId 注入 RequestContextHolder，供 LoginUserUtil 读取。</p>
  */
 @Slf4j
 @Component
@@ -27,14 +33,17 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper;
 
-    /** 不需要认证的白名单路径前缀 */
+    /** 不需要认证的路径前缀（保持最小集） */
     private static final String[] WHITE_LIST = {
-            "/api/auth/",
-            "/swagger",
-            "/v3/api-docs",
-            "/doc.html",
-            "/webjars",
+            "/api/auth/",      // 登录 / 注册 / 找回密码（注册与找回由 Controller 开关二次封禁）
+            "/swagger",        // Knife4j / Swagger 静态资源与 swagger-resources
+            "/v3/api-docs",    // OpenAPI JSON
+            "/doc.html",       // Knife4j 入口
+            "/webjars",        // 文档前端依赖
+            "/uploads/",       // 聊天附件静态资源：<img src> 无法携带 Authorization 头
+            "/favicon.ico",
             "/error"
     };
 
@@ -44,47 +53,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String requestURI = request.getRequestURI();
-        log.debug("[JWT Filter] 请求路径: {}", requestURI);
 
-        // 白名单直接放行
-        if (isWhiteListed(requestURI)) {
-            log.debug("[JWT Filter] 白名单路径, 直接放行: {}", requestURI);
+        // CORS 预检请求不带凭证，直接放行交给 CorsFilter 处理，否则跨域会被 401 打断
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || isWhiteListed(requestURI)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 提取 Authorization header
+        // 默认拒绝：缺少 / 格式错误的 Authorization 头一律 401
         String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("[JWT Filter] 缺少 Authorization header 或格式不正确: {}", requestURI);
-            // 不放行，但不在此处写响应 — 由后续 LoginUserUtil 抛出 UnauthorizedException
-            filterChain.doFilter(request, response);
+        if (authHeader == null || !authHeader.startsWith("Bearer ") || authHeader.length() <= 7) {
+            log.warn("[JWT Filter] 未认证请求被拒绝: {} {}", request.getMethod(), requestURI);
+            writeUnauthorized(response, "用户未登录");
             return;
         }
 
         String token = authHeader.substring(7);
-        log.debug("[JWT Filter] 提取token前20位: {}...", token.substring(0, Math.min(20, token.length())));
-
         try {
-            // 使用已有的 JwtUtil 解析 token
             String userId = jwtUtil.getUserId(token);
-            log.debug("[JWT Filter] token解析成功, userId={}", userId);
-
-            // 将 userId 设置到 RequestContextHolder，供 LoginUserUtil 读取
+            Long uid = Long.valueOf(userId);
             RequestContextHolder.currentRequestAttributes()
-                    .setAttribute("uid", Long.valueOf(userId), RequestAttributes.SCOPE_REQUEST);
-            log.debug("[JWT Filter] userId={} 已注入请求上下文", userId);
-
+                    .setAttribute("uid", uid, RequestAttributes.SCOPE_REQUEST);
+            log.debug("[JWT Filter] 认证通过, userId={}, path={}", uid, requestURI);
         } catch (ExpiredJwtException e) {
-            log.warn("[JWT Filter] token已过期: {}", e.getMessage());
-            // 设置过期标记，供 GlobalExceptionHandler 识别
-            request.setAttribute("jwt.error", "TOKEN_EXPIRED");
-        } catch (JwtException e) {
-            log.warn("[JWT Filter] token解析失败: {}", e.getMessage());
-            request.setAttribute("jwt.error", "TOKEN_INVALID");
+            log.warn("[JWT Filter] token 已过期: {}", requestURI);
+            writeUnauthorized(response, "登录已过期，请重新登录");
+            return;
+        } catch (JwtException | NumberFormatException e) {
+            log.warn("[JWT Filter] token 无效: {}", requestURI);
+            writeUnauthorized(response, "无效的登录凭证");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** 直接写出与业务响应一致的 401 JSON，避免异常处理器无法覆盖过滤器层的问题 */
+    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(Result.fail(401, message)));
     }
 
     /** 判断是否为白名单路径 */

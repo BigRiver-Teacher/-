@@ -30,6 +30,8 @@ public class Intervention {
     private String status;
     @Schema(description = "负责人")
     private String leader;
+    @Schema(description = "负责人账号ID(user.id)")
+    private Long leaderId;
     @Schema(description = "适用对象")
     private String targetGroup;
     @Schema(description = "执行周期(周)")

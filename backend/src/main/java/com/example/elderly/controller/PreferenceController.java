@@ -1,6 +1,7 @@
 package com.example.elderly.controller;
 
 import lombok.RequiredArgsConstructor;
+import com.example.elderly.annotation.RequireRole;
 import com.example.elderly.common.PriorityEnum;
 import com.example.elderly.common.Result;
 import com.example.elderly.dto.TestPushDTO;
@@ -20,16 +21,19 @@ public class PreferenceController {
     public Result<PreferenceConfigDTO> getConfig(){
         return Result.success(preferenceService.getConfig());
     }
+    @RequireRole({"admin", "staff"})
     @PutMapping("/config")
     public Result<String> saveConfig(@Validated @RequestBody PreferenceConfigDTO dto){
         preferenceService.saveConfig(dto);
         return Result.success("配置保存成功");
     }
+    @RequireRole({"admin", "staff"})
     @PostMapping("/rest")
     public Result<String> reset(){
         preferenceService.resetDefault();
         return Result.success("已重置默认配置");
     }
+    @RequireRole({"admin", "staff"})
     @PostMapping("/test-push")
     public Result<String> testPush(@Validated @RequestBody TestPushDTO dto){
         preferenceService.testPush(dto);

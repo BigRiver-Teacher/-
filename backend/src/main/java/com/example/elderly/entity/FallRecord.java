@@ -30,4 +30,6 @@ public class FallRecord extends BaseEntity {
     private String recoverStatus;
     @Schema(description = "处理人")
     private String handler;
+    @Schema(description = "处理人账号ID(user.id)")
+    private Long handlerId;
 }

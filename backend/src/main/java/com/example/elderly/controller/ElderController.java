@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import com.example.elderly.common.Result;
 import com.example.elderly.dto.ElderDTO;
@@ -35,7 +36,7 @@ public class ElderController {
     public Result<Elder> detail(@PathVariable Long id){
         Elder elder = elderService.getElderById(id);
         if(elder == null){
-            return Result.fail(404,"该老人档案不存在");
+            throw new BusinessException(404,"该老人档案不存在");
         }
         return Result.success(elder);
     }
@@ -43,7 +44,7 @@ public class ElderController {
     public Result<Void> update(@PathVariable Long id, @Validated @RequestBody ElderDTO dto){
         Boolean flag = elderService.updateElder(id, dto);
         if(!flag){
-            return Result.fail(400,"更新失败,该数据不存在");
+            throw new BusinessException(400,"更新失败,该数据不存在");
         }
         return Result.success();
     }
@@ -51,7 +52,7 @@ public class ElderController {
     public Result<Void>delete(@PathVariable Long id){
         Boolean flag = elderService.deleteElder(id);
         if(!flag){
-            return Result.fail(400,"删除失败，该老人档案不存在");
+            throw new BusinessException(400,"删除失败，该老人档案不存在");
         }
         return Result.success();
     }

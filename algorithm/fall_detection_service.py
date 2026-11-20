@@ -227,6 +227,8 @@ class FallDetectionService:
         input_path: "str | Path",
         output_path: "str | Path | None" = None,
         json_path: "str | Path | None" = None,
+        confidence_threshold: "float | None" = None,
+        cooldown_frames: "int | None" = None,
     ) -> Dict[str, Any]:
         """同步检测视频中的摔倒事件。
 
@@ -234,18 +236,34 @@ class FallDetectionService:
             input_path: 输入视频路径。
             output_path: 标注视频输出路径（None 表示不输出）。
             json_path: 事件日志 JSON 输出路径（None 表示不输出）。
-
-        Returns:
-            dict: 检测结果，结构为 {metadata, events, summary}。
+            confidence_threshold: 本次推理的跌倒置信度阈值（None 表示用服务默认值）。
+            cooldown_frames: 本次推理的告警冷却帧数（None 表示用服务默认值）。
         """
         if self._pipeline is None:
             self.load()
         with self._inference_lock:
-            return self._pipeline.process_video(
-                input_path=input_path,
-                output_path=output_path,
-                json_path=json_path,
-            )
+            # 阶段3：按请求覆盖参数，推理结束后恢复默认值；锁内执行避免并发串扰。
+            old_conf = self.confidence_threshold
+            old_cooldown = self.cooldown_frames
+            try:
+                if confidence_threshold is not None:
+                    self.confidence_threshold = confidence_threshold
+                    self._pipeline.confidence_threshold = confidence_threshold
+                if cooldown_frames is not None:
+                    self.cooldown_frames = cooldown_frames
+                    self._pipeline.cooldown_frames = cooldown_frames
+                return self._pipeline.process_video(
+                    input_path=input_path,
+                    output_path=output_path,
+                    json_path=json_path,
+                )
+            finally:
+                self.confidence_threshold = old_conf
+                self.cooldown_frames = old_cooldown
+                if hasattr(self._pipeline, "confidence_threshold"):
+                    self._pipeline.confidence_threshold = old_conf
+                if hasattr(self._pipeline, "cooldown_frames"):
+                    self._pipeline.cooldown_frames = old_cooldown
 
     # ------------------------------------------------------------------
     # 异步检测
@@ -255,6 +273,8 @@ class FallDetectionService:
         input_path: "str | Path",
         output_path: "str | Path | None" = None,
         json_path: "str | Path | None" = None,
+        confidence_threshold: "float | None" = None,
+        cooldown_frames: "int | None" = None,
     ) -> str:
         """异步提交视频检测任务，立即返回 task_id。
 
@@ -274,6 +294,8 @@ class FallDetectionService:
             "finished_at": None,
             "input": str(input_path),
             "output": str(output_path) if output_path else None,
+            "confidence_threshold": confidence_threshold,
+            "cooldown_frames": cooldown_frames,
             "result": None,
             "error": None,
         }
@@ -282,7 +304,11 @@ class FallDetectionService:
             """后台执行检测并更新任务状态。"""
             self._tasks[task_id]["status"] = "running"
             try:
-                result = self.process_video_sync(input_path, output_path, json_path)
+                result = self.process_video_sync(
+                    input_path, output_path, json_path,
+                    confidence_threshold=confidence_threshold,
+                    cooldown_frames=cooldown_frames,
+                )
                 self._tasks[task_id]["status"] = "done"
                 self._tasks[task_id]["result"] = result
             except Exception as exc:  # noqa: BLE001 需捕获所有异常写入任务状态

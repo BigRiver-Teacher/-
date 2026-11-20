@@ -11,6 +11,7 @@ import com.example.elderly.mapper.DataBackupMapper;
 import com.example.elderly.service.IDataBackupService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.io.File;
@@ -20,9 +21,15 @@ import java.time.format.DateTimeFormatter;
 
 @Service
 public class DataBackupServiceImpl extends ServiceImpl<DataBackupMapper, DataBackup> implements IDataBackupService {
-   @Resource
-   private DataBackupMapper dataBackupMapper;
-    private static final String BACKUP_ROOT = "D:/elderly_backup/";
+    @Resource
+    private DataBackupMapper dataBackupMapper;
+
+    /**
+     * 备份文件存放目录。默认相对当前工作目录的 backup/，可用 app.backup.dir
+     * 或环境变量 APP_BACKUP_DIR 覆盖（绝对路径亦可），避免硬编码盘符导致换机器失败。
+     */
+    @Value("${app.backup.dir:backup}")
+    private String backupDir;
 
     @Override
     public IPage<DataBackup> pageList(PageQueryDTO dto) {
@@ -33,13 +40,10 @@ public class DataBackupServiceImpl extends ServiceImpl<DataBackupMapper, DataBac
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DataBackup createBackup(BackupOperateDTO dto) {
-        File dir = new File(BACKUP_ROOT);
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
+        File dir = resolveBackupDir();
         String timeStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String fileName = dto.getType().getCode() + "_" + timeStr + ".sql.zip";
-        String filePath = BACKUP_ROOT + File.separator + fileName;
+        String filePath = new File(dir, fileName).getAbsolutePath();
 
         DataBackup backup = new DataBackup();
         backup.setFileName(fileName);
@@ -61,6 +65,18 @@ public class DataBackupServiceImpl extends ServiceImpl<DataBackupMapper, DataBac
         return backup;
     }
 
+
+    /** 解析并创建备份目录：相对路径基于启动时的工作目录，绝对路径原样使用。 */
+    private File resolveBackupDir() {
+        File dir = new File(backupDir);
+        if (!dir.isAbsolute()) {
+            dir = new File(System.getProperty("user.dir"), backupDir);
+        }
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw new RuntimeException("无法创建备份目录: " + dir.getAbsolutePath());
+        }
+        return dir;
+    }
 
     private boolean execMysqlDump(String filePath) {
         try {

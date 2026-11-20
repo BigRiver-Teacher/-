@@ -26,6 +26,10 @@ public class Caregiver {
     @NotBlank(message = "地址不能为空")
     @Schema(description = "地址")
     private String address;
+    @Schema(description = "关联账号ID(user.id)")
+    private Long userId;
+    @Schema(description = "所属社区")
+    private String community;
     @NotBlank(message = "状态不能为空")
     private String status;
     @Schema(description = "创建时间")

@@ -1,40 +1,46 @@
 package com.example.elderly.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
- * 全局 CORS 跨域配置
- * 允许独立前端项目（Vue/React）在开发和生产环境跨域访问 API
+ * 全局 CORS 跨域配置。
+ *
+ * <p>阶段0收紧：不再使用 addAllowedOriginPattern("*") + allowCredentials(true) 的
+ * "任意站点携带凭证访问"组合，改为明确域名白名单，可用环境变量 CORS_ALLOWED_ORIGINS 覆盖。</p>
  */
 @Configuration
 public class CorsConfig {
+
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173}")
+    private String allowedOrigins;
 
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // 允许前端跨域来源（开发环境 localhost 各端口 + 生产域名按需添加）
-        config.addAllowedOriginPattern("*");
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        config.setAllowedOrigins(origins);
 
-        // 允许携带凭证（Cookie / Authorization header）
+        // 保留凭证能力，但来源已被明确限定
         config.setAllowCredentials(true);
-
-        // 允许所有请求头
         config.addAllowedHeader("*");
-
-        // 允许所有 HTTP 方法
         config.addAllowedMethod("*");
-
-        // 预检请求缓存时间（秒）
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
         return new CorsFilter(source);
     }
 }

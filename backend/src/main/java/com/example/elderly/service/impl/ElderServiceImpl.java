@@ -7,12 +7,22 @@ import com.example.elderly.dto.ElderDTO;
 import com.example.elderly.entity.Elder;
 import com.example.elderly.mapper.ElderMapper;
 import com.example.elderly.service.ElderService;
+import com.example.elderly.util.DataScopeUtil;
+import com.example.elderly.util.LoginUserUtil;
 import com.example.elderly.vo.PageVO;
+import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
+import java.util.List;
+
 @Service
 public class ElderServiceImpl extends ServiceImpl<ElderMapper, Elder> implements ElderService {
+
+    @Resource
+    private DataScopeUtil dataScopeUtil;
+
     @Override
     public PageVO<Elder> listPage(Integer page, Integer size, String name, String phone) {
         Page<Elder> pageObj = new Page<>(page, size);
@@ -21,6 +31,15 @@ public class ElderServiceImpl extends ServiceImpl<ElderMapper, Elder> implements
                 Elder::getName,name);
         wrapper.like(StringUtils.hasText(phone),
                 Elder::getPhone,phone);
+        // 数据范围过滤：非管理员仅能访问其服务关系内的老人
+        List<Long> elderIds = dataScopeUtil.getAccessibleElderIds(LoginUserUtil.getUserId());
+        if (elderIds != null) {
+            if (elderIds.isEmpty()) {
+                wrapper.in(Elder::getId, Collections.singletonList(-1L));
+            } else {
+                wrapper.in(Elder::getId, elderIds);
+            }
+        }
         Page<Elder> elderPage = baseMapper.selectPage(pageObj, wrapper);
         PageVO<Elder> vo = new PageVO<>();
         vo.setTotal(elderPage.getTotal());
@@ -73,6 +92,15 @@ public class ElderServiceImpl extends ServiceImpl<ElderMapper, Elder> implements
 
     @Override
     public Elder getElderById(Long id) {
-        return getById(id);
+        Elder elder = getById(id);
+        if (elder == null) {
+            return null;
+        }
+        // 数据范围过滤：无权限访问该老人时返回 null（等同不存在）
+        List<Long> elderIds = dataScopeUtil.getAccessibleElderIds(LoginUserUtil.getUserId());
+        if (elderIds != null && !elderIds.contains(id)) {
+            return null;
+        }
+        return elder;
     }
 }

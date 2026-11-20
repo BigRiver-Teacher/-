@@ -1,7 +1,7 @@
 // main.ts
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElMessage } from 'element-plus'
 
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import 'element-plus/dist/index.css'
@@ -25,5 +25,11 @@ app.use(router)
 app.use(ElementPlus, {
   locale: zhCn,
 })
+
+// 阶段2：全局渲染异常兜底，避免组件异常导致整页空白
+app.config.errorHandler = (err, _instance, info) => {
+  console.error('[全局错误]', err, info)
+  ElMessage.error('页面加载异常，请刷新重试或联系管理员')
+}
 
 app.mount('#app')

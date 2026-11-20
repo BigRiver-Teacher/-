@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.elderly.common.PageResult;
 import com.example.elderly.common.Result;
@@ -41,7 +42,7 @@ public class FallRecordController {
     public Result<FallVO> detail(@PathVariable Long id){
         FallRecord record = iFallRecordService.getById(id);
         if(record == null){
-            return Result.fail(404, "跌倒记录不存在");
+            throw new BusinessException(404, "跌倒记录不存在");
         }
         return Result.success(toVO(record));
     }
@@ -65,11 +66,11 @@ public class FallRecordController {
                               @NotNull(message = "id不能为空")Long id,
                               @Validated @RequestBody  FallRecordUpdateDTO dto){
         if(dto.getId() == null || !id.equals(dto.getId())){
-            return Result.fail(400, "路径ID与请求体ID不一致");
+            throw new BusinessException(400, "路径ID与请求体ID不一致");
         }
         Boolean flag = iFallRecordService.update(dto);
         if(!flag){
-            return Result.fail(400, "更新失败");
+            throw new BusinessException(400, "更新失败");
         }
         return Result.success();
     }
@@ -78,7 +79,7 @@ public class FallRecordController {
                                    @NotNull(message = "id不能为空")Long id){
         Boolean flag = iFallRecordService.removeByIdValid(id);
         if(!flag){
-            return Result.fail(400, "删除失败");
+            throw new BusinessException(400, "删除失败");
         }
         return Result.success();
     }

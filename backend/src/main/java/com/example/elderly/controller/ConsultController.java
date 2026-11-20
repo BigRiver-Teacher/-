@@ -1,5 +1,6 @@
 package com.example.elderly.controller;
 
+import com.example.elderly.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.elderly.common.PageResult;
@@ -55,7 +56,7 @@ public class ConsultController {
     public Result<Consult> detail(@PathVariable Long id) {
         Consult consult = consultService.getById(id);
         if (consult == null) {
-            return Result.fail(404, "咨询记录不存在");
+            throw new BusinessException(404, "咨询记录不存在");
         }
         return Result.success(consult);
     }

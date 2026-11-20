@@ -17,9 +17,11 @@ USE elderly_care;
 -- =====================================================
 INSERT INTO `user` (`username`, `password`, `real_name`, `role`, `status`, `community`, `account`, `phone`, `email`, `last_login`, `create_time`)
 VALUES
-('admin',    'e10adc3949ba59abbe56e057f20f883e', '系统管理员', 'admin', 'ACTIVE', '朝阳社区', 'admin',    '13800000000', 'admin@example.com',    NOW(), DATE_SUB(NOW(), INTERVAL 365 DAY)),
-('zhangsan', 'e10adc3949ba59abbe56e057f20f883e', '张三',     'staff',  'ACTIVE', '朝阳社区', 'zhangsan', '13800001111', 'zhangsan@example.com', NOW(), DATE_SUB(NOW(), INTERVAL 90 DAY)),
-('lisi',     'e10adc3949ba59abbe56e057f20f883e', '李四',     'staff',  'ACTIVE', '海淀社区', 'lisi',     '13800002222', 'lisi@example.com',     NOW(), DATE_SUB(NOW(), INTERVAL 60 DAY));
+('admin',    'e10adc3949ba59abbe56e057f20f883e', '系统管理员', 'admin', 'active', '朝阳社区', 'admin',    '13800000000', 'admin@example.com',    NOW(), DATE_SUB(NOW(), INTERVAL 365 DAY)),
+-- 内置员工演示账号（staff）：仅用于管理员端"账号权限"列表与操作日志署名，
+-- 不属于 README 中列出的 9 个四端登录账号；种子数据中的"张三/李四"文本引用与之一致。
+('zhangsan', 'e10adc3949ba59abbe56e057f20f883e', '张三',     'staff',  'active', '朝阳社区', 'zhangsan', '13800001111', 'zhangsan@example.com', NOW(), DATE_SUB(NOW(), INTERVAL 90 DAY)),
+('lisi',     'e10adc3949ba59abbe56e057f20f883e', '李四',     'staff',  'active', '海淀社区', 'lisi',     '13800002222', 'lisi@example.com',     NOW(), DATE_SUB(NOW(), INTERVAL 60 DAY));
 
 -- =====================================================
 -- 2. 老人表 (elder) — 6 位老人（其它表关联的 elder_id 以此为准）
@@ -161,15 +163,87 @@ VALUES
 ('elderly_care_manual_20240807.sql', DATE_SUB(NOW(), INTERVAL 3 DAY), 'MANUAL', '129.1 MB', 'SUCCESS', '/backup/manual/elderly_care_manual_20240807.sql');
 
 -- =====================================================
--- 16. 菜单表 (menu) — init.sql 已预置，此处补充动态菜单
+-- 16. 菜单表 (menu) + 角色-菜单映射 (role_menu) — 多端分角色菜单体系
+--     id 分段：1-29 管理员端 / 101-106 专家端 / 201-208 陪护端 / 301-303 陪护主管 / 401-406 老人端
 -- =====================================================
-INSERT INTO `menu` (`name`, `path`, `icon`, `parent_id`, `visible`, `sort`, `create_time`)
-VALUES
-('首页概览', '/home/management', 'HomeFilled', 0, 1, 1, NOW()),
-('预警管理', '/home/warning', 'Warning', 0, 1, 2, NOW()),
-('老人档案', '/home/elder/base', 'User', 0, 1, 3, NOW()),
-('设备管理', '/home/device', 'Monitor', 0, 1, 4, NOW()),
-('专家管理', '/home/expert', 'Star', 0, 1, 5, NOW());
+DELETE FROM `menu`;
+
+INSERT INTO `menu` (`id`, `name`, `path`, `icon`, `parent_id`, `visible`, `sort`, `create_time`) VALUES
+-- 管理员端（沿用现有 15 组页面）
+(1,  '管理主页',       '/home/management',           'HomeFilled', 0,  1, 1,  NOW()),
+(2,  '跌倒预警',       '/home/warning',              'Warning',    0,  1, 2,  NOW()),
+(3,  '老人详情',       '/home/elder',                'User',       0,  1, 3,  NOW()),
+(4,  '基础档案',       '/home/elder/base',           'Files',      3,  1, 1,  NOW()),
+(5,  '步态历史',       '/home/elder/gait',           'List',       3,  1, 2,  NOW()),
+(6,  '既往跌倒记录',   '/home/elder/fall-record',    'Notebook',   3,  1, 3,  NOW()),
+(7,  '健康备注',       '/home/elder/health-note',    'Edit',       3,  1, 4,  NOW()),
+(8,  '传感设备管理',   '/home/device',               'Connection', 0,  1, 4,  NOW()),
+(9,  '专家康养咨询',   '/home/expert',               'Headset',    0,  1, 5,  NOW()),
+(10, '陪护人员管理',   '/home/caregiver',            'UserFilled', 0,  1, 6,  NOW()),
+(11, '个人主页',       '/home/profile',              'Avatar',     0,  1, 7,  NOW()),
+(12, '告警信息中心',   '/home/alert',                'Bell',       0,  1, 8,  NOW()),
+(13, '实时告警列表',   '/home/alert/list',           'List',       12, 1, 1,  NOW()),
+(14, '家属推送日志',   '/home/alert/push-log',       'Share',      12, 1, 2,  NOW()),
+(15, '社区处理台账',   '/home/alert/community',      'Files',      12, 1, 3,  NOW()),
+(16, '通知偏好设置',   '/home/alert/preference',     'Setting',    12, 1, 4,  NOW()),
+(17, '居家空间档案',   '/home/space',                'House',      0,  1, 9,  NOW()),
+(18, '干预方案管理',   '/home/intervention',         'Tools',      0,  1, 10, NOW()),
+(19, '日常康养日程',   '/home/schedule',             'Calendar',   0,  1, 11, NOW()),
+(29, '对话监管',       '/home/chat-monitor',         'ChatDotRound', 0, 1, 12, NOW()),
+(20, '系统管理',       '/home/system',               'Setting',    0,  1, 13, NOW()),
+(21, '账号权限',       '/home/system/permission',    'User',       20, 1, 1,  NOW()),
+(22, '操作日志',       '/home/system/log',           'Document',   20, 1, 2,  NOW()),
+(23, '数据备份',       '/home/system/backup',        'Files',      20, 1, 3,  NOW()),
+(24, '模型参数设置',   '/home/system/model',         'Operation',  20, 1, 4,  NOW()),
+(25, '组件与功能',     '/home/custom',               'Grid',       0,  1, 14, NOW()),
+(26, '侧边栏自定义',   '/home/custom/sidebar',       'Menu',       25, 1, 1,  NOW()),
+(27, '首页看板布局',   '/home/custom/dashboard',     'Grid',       25, 1, 2,  NOW()),
+(28, '移动端导航设置', '/home/custom/mobile',        'Operation',  25, 1, 3,  NOW()),
+-- 专家端
+(101, '工作台',        '/expert/workbench',          'HomeFilled',   0, 1, 1, NOW()),
+(102, '我的咨询',      '/expert/consult',            'ChatDotRound', 0, 1, 2, NOW()),
+(103, '排班请假',      '/expert/schedule',           'Calendar',     0, 1, 3, NOW()),
+(104, '老人健康档案',  '/expert/elder',              'User',         0, 1, 4, NOW()),
+(105, '干预方案建议',  '/expert/intervention',       'Tools',        0, 1, 5, NOW()),
+(106, '个人中心',      '/expert/profile',            'Avatar',       0, 1, 6, NOW()),
+-- 陪护端
+(201, '工作台',        '/caregiver/workbench',       'HomeFilled',   0, 1, 1, NOW()),
+(202, '我负责的老人',  '/caregiver/elder',           'User',         0, 1, 5, NOW()),
+(203, '今日任务',      '/caregiver/task',            'Calendar',     0, 1, 6, NOW()),
+(208, '联系家属',      '/caregiver/chat',            'ChatDotRound', 0, 1, 7, NOW()),
+(204, '告警处置',      '/caregiver/alert',           'Bell',         0, 1, 8, NOW()),
+(205, '健康记录',      '/caregiver/health',          'Edit',         0, 1, 9, NOW()),
+(206, '空间巡检',      '/caregiver/space',           'House',        0, 1, 10, NOW()),
+(207, '个人中心',      '/caregiver/profile',         'Avatar',       0, 1, 11, NOW()),
+-- 陪护主管（在陪护端基础上扩展，排班/审批/全组紧跟工作台）
+(301, '排班管理',      '/supervisor/schedule',       'Calendar',     0, 1, 2, NOW()),
+(302, '请假审批',      '/supervisor/apply',          'Checked',      0, 1, 3, NOW()),
+(303, '全组视角',      '/supervisor/team',           'UserFilled',   0, 1, 4, NOW()),
+-- 老人端（家属代办）
+(401, '首页健康概览',  '/elder/home',                'HomeFilled',   0, 1, 1, NOW()),
+(402, '在线咨询',      '/elder/consult',             'ChatDotRound', 0, 1, 2, NOW()),
+(403, '联系陪护',      '/elder/caregiver',           'User',         0, 1, 3, NOW()),
+(404, '我的护工与家人','/elder/relation',            'UserFilled',   0, 1, 4, NOW()),
+(405, '用药与日程提醒','/elder/reminder',            'Calendar',     0, 1, 5, NOW()),
+(406, '个人档案',      '/elder/profile',             'Avatar',       0, 1, 6, NOW());
+
+INSERT INTO `role_menu` (`role`, `menu_id`, `create_time`) VALUES
+('admin', 1, NOW()), ('admin', 2, NOW()), ('admin', 3, NOW()), ('admin', 4, NOW()),
+('admin', 5, NOW()), ('admin', 6, NOW()), ('admin', 7, NOW()), ('admin', 8, NOW()),
+('admin', 9, NOW()), ('admin', 10, NOW()), ('admin', 11, NOW()), ('admin', 12, NOW()),
+('admin', 13, NOW()), ('admin', 14, NOW()), ('admin', 15, NOW()), ('admin', 16, NOW()),
+('admin', 17, NOW()), ('admin', 18, NOW()), ('admin', 19, NOW()), ('admin', 20, NOW()),
+('admin', 21, NOW()), ('admin', 22, NOW()), ('admin', 23, NOW()), ('admin', 24, NOW()),
+('admin', 25, NOW()), ('admin', 26, NOW()), ('admin', 27, NOW()), ('admin', 28, NOW()), ('admin', 29, NOW()),
+('expert', 101, NOW()), ('expert', 102, NOW()), ('expert', 103, NOW()), ('expert', 104, NOW()),
+('expert', 105, NOW()), ('expert', 106, NOW()),
+('caregiver', 201, NOW()), ('caregiver', 202, NOW()), ('caregiver', 203, NOW()), ('caregiver', 204, NOW()),
+('caregiver', 205, NOW()), ('caregiver', 206, NOW()), ('caregiver', 207, NOW()), ('caregiver', 208, NOW()),
+('supervisor', 201, NOW()), ('supervisor', 203, NOW()), ('supervisor', 204, NOW()),
+('supervisor', 205, NOW()), ('supervisor', 206, NOW()), ('supervisor', 207, NOW()), ('supervisor', 208, NOW()),
+('supervisor', 301, NOW()), ('supervisor', 302, NOW()), ('supervisor', 303, NOW()),
+('elder', 401, NOW()), ('elder', 402, NOW()), ('elder', 403, NOW()), ('elder', 404, NOW()),
+('elder', 405, NOW()), ('elder', 406, NOW());
 
 -- =====================================================
 -- 17. 模型参数表 (model_param) — 2 条（数值与 DTO 类型一致）
@@ -274,7 +348,7 @@ VALUES
 -- =====================================================
 
 -- 补充告警（处理预警列表 + 预警趋势 7 天数据点）
-INSERT INTO \`alert\` (\`elder_name\`, \`elder_id\`, \`alert_type\`, \`level\`, \`description\`, \`alert_time\`, \`location\`, \`status\`, \`handler_id\`, \`handler\`, \`handle_time\`, \`contact_phone\`, \`emergency_contact\`, \`suggested_action\`, \`read\`, \`handle_note\`, \`create_time\`) VALUES
+INSERT INTO `alert` (`elder_name`, `elder_id`, `alert_type`, `level`, `description`, `alert_time`, `location`, `status`, `handler_id`, `handler`, `handle_time`, `contact_phone`, `emergency_contact`, `suggested_action`, `read`, `handle_note`, `create_time`) VALUES
 ('赵玉兰', 4, 'FALL', 'high', '老人在卫生间门口滑倒，手环检测到异常加速度', DATE_SUB(NOW(), INTERVAL 1 DAY), 'A栋302室卫生间', 'pending', NULL, NULL, NULL, '13900004444', '赵小军（儿子）', '立即电话确认老人状况，安排护工上门查看', 0, NULL, DATE_SUB(NOW(), INTERVAL 1 DAY)),
 ('刘德胜', 5, 'DEVICE_OFFLINE', 'medium', 'GPS定位器离线超过1小时，无法获取位置', DATE_SUB(NOW(), INTERVAL 2 DAY), 'B栋401室', 'pending', NULL, NULL, NULL, '13900005555', '刘芳（女儿）', '检查定位器电量，联系家属确认老人位置', 0, NULL, DATE_SUB(NOW(), INTERVAL 2 DAY)),
 ('陈阿妹', 6, 'ABNORMAL_GAIT', 'medium', '步态分析显示步速明显下降，跌倒风险升高', DATE_SUB(NOW(), INTERVAL 3 DAY), 'C栋502室', 'processing', 2, '张三', NULL, '13900006666', '陈明（儿子）', '安排康复师上门评估步态，调整助行器', 1, '已通知康复师上门', DATE_SUB(NOW(), INTERVAL 3 DAY)),
@@ -282,26 +356,26 @@ INSERT INTO \`alert\` (\`elder_name\`, \`elder_id\`, \`alert_type\`, \`level\`, 
 ('李秀英', 2, 'DEVICE_OFFLINE', 'low', '手环电量低即将关机', DATE_SUB(NOW(), INTERVAL 5 DAY), 'B栋203室', 'pending', NULL, NULL, NULL, '13900002222', '李大明（儿子）', '提醒家属为手环充电', 0, NULL, DATE_SUB(NOW(), INTERVAL 5 DAY));
 
 -- 补充步态记录（步态趋势 7 个数据点）
-INSERT INTO \`gait_record\` (\`name\`, \`elder_id\`, \`date\`, \`speed\`, \`frequency\`, \`step_length\`, \`score\`, \`result\`) VALUES
+INSERT INTO `gait_record` (`name`, `elder_id`, `date`, `speed`, `frequency`, `step_length`, `score`, `result`) VALUES
 ('张建国', 1, DATE_SUB(NOW(), INTERVAL 1 DAY), 0.85, 98, 54, 76, 'NORMAL'),
 ('张建国', 1, DATE_SUB(NOW(), INTERVAL 2 DAY), 0.79, 92, 50, 70, 'BORDERLINE'),
 ('张建国', 1, DATE_SUB(NOW(), INTERVAL 3 DAY), 0.88, 100, 56, 80, 'NORMAL'),
 ('张建国', 1, DATE_SUB(NOW(), INTERVAL 4 DAY), 0.75, 88, 48, 65, 'BORDERLINE');
 
 -- 补充咨询（专家统计：今日咨询/待分配/进行中/满意度）
-INSERT INTO \`consult\` (\`elder_name\`, \`type\`, \`expert_id\`, \`expert_name\`, \`status\`, \`urgency\`, \`consult_time\`, \`content\`, \`reply\`, \`rating\`, \`feedback\`, \`create_time\`) VALUES
+INSERT INTO `consult` (`elder_name`, `type`, `expert_id`, `expert_name`, `status`, `urgency`, `consult_time`, `content`, `reply`, `rating`, `feedback`, `create_time`) VALUES
 ('张建国', '健康咨询', 1, '陈伟明', 'completed', 'urgent', DATE_SUB(NOW(), INTERVAL 3 HOUR), '老人晨起血压偏高，头晕，咨询是否需要调整用药', '建议连续3天早晚测量血压记录，若持续偏高需面诊调整', 5, '回复及时，建议很实用', DATE_SUB(NOW(), INTERVAL 3 HOUR)),
 ('李秀英', '康复建议', 3, '黄志强', 'completed', 'important', DATE_SUB(NOW(), INTERVAL 2 HOUR), '膝关节术后恢复期训练方案咨询', '建议每日20分钟股四头肌训练，循序渐进，注意保暖', 4, '方案详细可执行', DATE_SUB(NOW(), INTERVAL 2 HOUR)),
 ('赵玉兰', '用药指导', 2, '林美丽', 'pending', 'normal', DATE_SUB(NOW(), INTERVAL 1 HOUR), '多种药物同时服用是否有冲突', NULL, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR));
 
 -- 补充用户（账号权限列表）
-INSERT INTO \`user\` (\`username\`, \`password\`, \`real_name\`, \`role\`, \`status\`, \`community\`, \`account\`, \`phone\`, \`email\`, \`last_login\`, \`create_time\`) VALUES
-('wangwu', 'e10adc3949ba59abbe56e057f20f883e', '王五', 'staff', 'ACTIVE', '西城社区', 'wangwu', '13800003333', 'wangwu@example.com', DATE_SUB(NOW(), INTERVAL 2 HOUR), DATE_SUB(NOW(), INTERVAL 30 DAY)),
-('zhaoliu', 'e10adc3949ba59abbe56e057f20f883e', '赵六', 'staff', 'ACTIVE', '朝阳社区', 'zhaoliu', '13800004444', 'zhaoliu@example.com', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY)),
-('sunqi', 'e10adc3949ba59abbe56e057f20f883e', '孙七', 'admin', 'ACTIVE', '丰台社区', 'sunqi', '13800005555', 'sunqi@example.com', DATE_SUB(NOW(), INTERVAL 3 HOUR), DATE_SUB(NOW(), INTERVAL 10 DAY));
+INSERT INTO `user` (`username`, `password`, `real_name`, `role`, `status`, `community`, `account`, `phone`, `email`, `last_login`, `create_time`) VALUES
+('wangwu', 'e10adc3949ba59abbe56e057f20f883e', '王五', 'staff', 'active', '西城社区', 'wangwu', '13800003333', 'wangwu@example.com', DATE_SUB(NOW(), INTERVAL 2 HOUR), DATE_SUB(NOW(), INTERVAL 30 DAY)),
+('zhaoliu', 'e10adc3949ba59abbe56e057f20f883e', '赵六', 'staff', 'active', '朝阳社区', 'zhaoliu', '13800004444', 'zhaoliu@example.com', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 20 DAY));
+-- 已移除未文档化的隐藏管理员账号 sunqi（13800005555）：无业务引用，且与账号表不一致。
 
 -- 补充康养日程（今日 5 条 + 未来几天）
-INSERT INTO \`schedule_task\` (\`task_code\`, \`task_type\`, \`elder_name\`, \`location\`, \`priority\`, \`task_status\`, \`trigger_reson\`, \`relate_alert_code\`, \`relate_device_sn\`, \`handle_result\`, \`handler\`, \`complete_time\`, \`note\`, \`task_date\`, \`create_time\`) VALUES
+INSERT INTO `schedule_task` (`task_code`, `task_type`, `elder_name`, `location`, `priority`, `task_status`, `trigger_reson`, `relate_alert_code`, `relate_device_sn`, `handle_result`, `handler`, `complete_time`, `note`, `task_date`, `create_time`) VALUES
 ('TASK-2024004', 'HEALTH_CHECK', '赵玉兰', 'A栋302室', 'urgent', 'pending', '高血压日常随访', NULL, NULL, NULL, '周丽华', NULL, '测量血压并记录，观察用药反应', CURDATE(), DATE_SUB(NOW(), INTERVAL 2 HOUR)),
 ('TASK-2024005', 'REHAB_TRAINING', '张建国', 'A栋101室', 'important', 'processing', '跌倒后康复训练第2周', NULL, NULL, NULL, '郑国栋', NULL, '下肢力量训练30分钟，评估恢复进度', CURDATE(), DATE_SUB(NOW(), INTERVAL 1 HOUR)),
 ('TASK-2024009', 'MEDICATION', '王德发', 'C栋302室', 'important', 'pending', '降压药服用提醒与血压复测', NULL, NULL, NULL, '郑国栋', NULL, '监督服药并测量血压记录', CURDATE(), NOW()),
@@ -312,7 +386,7 @@ INSERT INTO \`schedule_task\` (\`task_code\`, \`task_type\`, \`elder_name\`, \`l
 ('TASK-2024008', 'ENV_INSPECT', NULL, 'A栋公共区域', 'low', 'pending', '月度环境安全检查', NULL, NULL, NULL, '郑国栋', NULL, '检查消防设施与应急通道', DATE_ADD(CURDATE(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 6 HOUR));
 
 -- 补充报告管理操作日志（系统概览-生成报告计数）
-INSERT INTO \`operation_log\` (\`operate_time\`, \`operator\`, \`operate_type\`, \`module\`, \`content\`, \`ip\`, \`status\`) VALUES
+INSERT INTO `operation_log` (`operate_time`, `operator`, `operate_type`, `module`, `content`, `ip`, `status`) VALUES
 (DATE_SUB(NOW(), INTERVAL 1 HOUR), '系统管理员', 'GENERATE', '报告管理', '生成《2026年8月老人健康周报》', '192.168.1.1', 'SUCCESS'),
 (DATE_SUB(NOW(), INTERVAL 3 HOUR), '张三', 'GENERATE', '报告管理', '生成《张建国康复训练月度报告》', '192.168.1.100', 'SUCCESS');
 
@@ -321,52 +395,275 @@ INSERT INTO \`operation_log\` (\`operate_time\`, \`operator\`, \`operate_type\`,
 -- =====================================================
 
 -- 补充故障/维护设备（设备故障统计有数据）
-INSERT INTO \`device\` (\`device_sn\`, \`device_name\`, \`device_type\`, \`status\`, \`battery\`, \`firmware\`, \`bind_elder_name\`, \`bind_elder_id\`, \`bind_time\`, \`last_online_time\`, \`location\`, \`install_date\`, \`alert_rule\`, \`create_time\`) VALUES
+INSERT INTO `device` (`device_sn`, `device_name`, `device_type`, `status`, `battery`, `firmware`, `bind_elder_name`, `bind_elder_id`, `bind_time`, `last_online_time`, `location`, `install_date`, `alert_rule`, `create_time`) VALUES
 ('DEV-2024-007', '环境传感器-003', 'SENSOR', 'FAULT', NULL, 'v1.5.0', NULL, NULL, NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), 'C栋活动室', DATE_SUB(NOW(), INTERVAL 60 DAY), NULL, DATE_SUB(NOW(), INTERVAL 60 DAY)),
 ('DEV-2024-008', '智能摄像头-003', 'CAMERA', 'MAINTENANCE', NULL, 'v3.0.1', '王德发', 3, DATE_SUB(NOW(), INTERVAL 40 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY), 'C栋302室', DATE_SUB(NOW(), INTERVAL 40 DAY), '{"motionDetection":true}', DATE_SUB(NOW(), INTERVAL 40 DAY));
 
 -- 在线设备最后在线时间分布到近7天（趋势图满7点）
-UPDATE \`device\` SET last_online_time = DATE_SUB(NOW(), INTERVAL ((id - 1) % 7) DAY) WHERE status = 'ONLINE';
+UPDATE `device` SET last_online_time = DATE_SUB(NOW(), INTERVAL ((id - 1) % 7) DAY) WHERE status = 'ONLINE';
 
 -- 补充今天与近几天的告警（告警趋势近7天满点）
-INSERT INTO \`alert\` (\`elder_name\`, \`elder_id\`, \`alert_type\`, \`level\`, \`description\`, \`alert_time\`, \`location\`, \`status\`, \`handler_id\`, \`handler\`, \`handle_time\`, \`contact_phone\`, \`emergency_contact\`, \`suggested_action\`, \`read\`, \`handle_note\`, \`create_time\`) VALUES
+INSERT INTO `alert` (`elder_name`, `elder_id`, `alert_type`, `level`, `description`, `alert_time`, `location`, `status`, `handler_id`, `handler`, `handle_time`, `contact_phone`, `emergency_contact`, `suggested_action`, `read`, `handle_note`, `create_time`) VALUES
 ('张建国', 1, 'ABNORMAL_GAIT', 'medium', '步态评估提示跌倒风险升高，建议复查', NOW(), 'A栋101室', 'pending', NULL, NULL, NULL, '13900001111', '张小明（儿子）', '安排步态复查与康复评估', 0, NULL, NOW()),
 ('王德发', 3, 'EMERGENCY', 'low', '老人反馈血压偏高，请求工作人员关注', DATE_SUB(NOW(), INTERVAL 1 HOUR), 'C栋302室', 'pending', NULL, NULL, NULL, '13900003333', '王小华（女儿）', '安排血压复测并记录', 0, NULL, DATE_SUB(NOW(), INTERVAL 1 HOUR));
 
 -- 补充老人（人员统计更丰满）
-INSERT INTO \`elder\` (\`name\`, \`gender\`, \`age\`, \`id_card\`, \`birth_date\`, \`ethnicity\`, \`phone\`, \`address\`, \`residence_type\`, \`remark\`, \`device_bound\`, \`create_time\`) VALUES
+INSERT INTO `elder` (`name`, `gender`, `age`, `id_card`, `birth_date`, `ethnicity`, `phone`, `address`, `residence_type`, `remark`, `device_bound`, `create_time`) VALUES
 ('钱淑珍', 'FEMALE', 79, '110101194704010000', '1947-04-01', '汉族', '13900007777', '北京市东城区XX胡同5号', 'ALONE', '高血压史，每日需服药', 0, DATE_SUB(NOW(), INTERVAL 30 DAY)),
 ('孙启明', 'MALE', 83, '110101194310250000', '1943-10-25', '汉族', '13900008888', '北京市朝阳区幸福小区8栋', 'WITH_FAMILY', '慢阻肺，注意保暖防感冒', 0, DATE_SUB(NOW(), INTERVAL 5 DAY));
 
 -- 补充健康记录
-INSERT INTO \`health_note\` (\`elder_id\`, \`elder_name\`, \`record_time\`, \`recorder\`, \`note_type\`, \`content\`, \`importance\`, \`fallow_status\`, \`create_time\`) VALUES
+INSERT INTO `health_note` (`elder_id`, `elder_name`, `record_time`, `recorder`, `note_type`, `content`, `importance`, `fallow_status`, `create_time`) VALUES
 (7, '钱淑珍', NOW(), '周丽华', 'BLOOD_PRESSURE', '晨起血压148/90，已提醒按时服药，建议低盐饮食', 'IMPORTANT', 'FOLLOWING', NOW()),
 (8, '孙启明', DATE_SUB(NOW(), INTERVAL 2 HOUR), '吴晓芳', 'DAILY_CHECK', '日常巡视正常，呼吸平稳，建议上午户外活动', 'NORMAL', 'PENDING', DATE_SUB(NOW(), INTERVAL 2 HOUR));
 
 -- =====================================================
 -- 28. 大屏可视化数据补充（服务人员/专家/步态/咨询/老人，各图表 7 项左右）
 -- =====================================================
-INSERT INTO \`expert\` (\`name\`, \`title\`, \`specialty\`, \`institution\`, \`phone\`, \`status\`, \`today_count\`, \`total_count\`, \`rating\`, \`schedule\`, \`create_time\`) VALUES
+INSERT INTO `expert` (`name`, `title`, `specialty`, `institution`, `phone`, `status`, `today_count`, `total_count`, `rating`, `schedule`, `create_time`) VALUES
 ('王志远', '主治医师', '老年呼吸系统疾病', '示例市康复中心医院', '13800010004', 'ACTIVE', 2, 88, 4.55, '{"mon":"AM","thu":"PM"}', DATE_SUB(NOW(), INTERVAL 200 DAY)),
 ('刘慧敏', '主任医师', '老年糖尿病管理', '示例市中心医院', '13800010005', 'ACTIVE', 1, 112, 4.70, '{"tue":"AM","fri":"FULL"}', DATE_SUB(NOW(), INTERVAL 260 DAY)),
 ('赵国庆', '副主任医师', '老年康复医学', '示例市康复医院', '13800010006', 'ACTIVE', 0, 66, 4.48, '{"wed":"FULL"}', DATE_SUB(NOW(), INTERVAL 150 DAY)),
 ('孙丽华', '教授', '老年营养学', '示例市医学研究院', '13800010007', 'ACTIVE', 1, 54, 4.60, '{"sat":"AM"}', DATE_SUB(NOW(), INTERVAL 120 DAY));
-INSERT INTO \`caregiver\` (\`name\`, \`age\`, \`position\`, \`phone\`, \`address\`, \`status\`, \`create_time\`) VALUES
+INSERT INTO `caregiver` (`name`, `age`, `position`, `phone`, `address`, `status`, `create_time`) VALUES
 ('冯丽丽', 32, 'REHAB_NURSE', '13800006666', '北京市东城区XX路10号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 180 DAY)),
 ('何晓燕', 40, 'PSYCHO_COUNSELOR', '13800006667', '北京市西城区XX小区3栋', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 120 DAY)),
 ('陈志强', 50, 'NURSING_SUPERVISOR', '13800006668', '北京市海淀区XX路8号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 300 DAY)),
 ('徐丽萍', 29, 'CAREGIVER', '13800006669', '北京市丰台区XX街道6号', 'ACTIVE', DATE_SUB(NOW(), INTERVAL 90 DAY));
-INSERT INTO \`elder\` (\`name\`, \`gender\`, \`age\`, \`id_card\`, \`birth_date\`, \`ethnicity\`, \`phone\`, \`address\`, \`residence_type\`, \`remark\`, \`device_bound\`, \`create_time\`) VALUES
+INSERT INTO `elder` (`name`, `gender`, `age`, `id_card`, `birth_date`, `ethnicity`, `phone`, `address`, `residence_type`, `remark`, `device_bound`, `create_time`) VALUES
 ('周秀兰', 'FEMALE', 62, '110101196210010000', '1962-10-01', '汉族', '13900009901', '北京市朝阳区A小区', 'ALONE', '健康状况良好', 0, DATE_SUB(NOW(), INTERVAL 60 DAY)),
 ('吴建国', 'MALE', 67, '110101195705020000', '1957-05-02', '汉族', '13900009902', '北京市海淀区B小区', 'WITH_FAMILY', '轻度高血压', 0, DATE_SUB(NOW(), INTERVAL 50 DAY)),
 ('郑淑英', 'FEMALE', 72, '110101195212030000', '1952-12-03', '汉族', '13900009903', '北京市西城区C小区', 'ALONE', '冠心病史', 1, DATE_SUB(NOW(), INTERVAL 40 DAY)),
 ('冯德昌', 'MALE', 77, '110101194701040000', '1947-01-04', '汉族', '13900009904', '北京市丰台区D小区', 'WITH_FAMILY', '2型糖尿病', 1, DATE_SUB(NOW(), INTERVAL 30 DAY)),
 ('蒋玉兰', 'FEMALE', 86, '110101193803050000', '1938-03-05', '汉族', '13900009905', '北京市东城区E小区', 'ALONE', '行动不便', 1, DATE_SUB(NOW(), INTERVAL 20 DAY)),
 ('沈国华', 'MALE', 89, '110101193506060000', '1935-06-06', '汉族', '13900009906', '北京市朝阳区F小区', 'NURSING_HOME', '长期卧床', 0, DATE_SUB(NOW(), INTERVAL 10 DAY));
-INSERT INTO \`consult\` (\`elder_name\`, \`type\`, \`expert_id\`, \`expert_name\`, \`status\`, \`urgency\`, \`consult_time\`, \`content\`, \`reply\`, \`rating\`, \`feedback\`, \`create_time\`) VALUES
+INSERT INTO `consult` (`elder_name`, `type`, `expert_id`, `expert_name`, `status`, `urgency`, `consult_time`, `content`, `reply`, `rating`, `feedback`, `create_time`) VALUES
 ('周秀兰', '健康咨询', 5, '刘慧敏', 'completed', 'normal', DATE_SUB(NOW(), INTERVAL 5 DAY), '血糖控制咨询', '建议低糖饮食并每日监测', 4, '有帮助', DATE_SUB(NOW(), INTERVAL 5 DAY)),
 ('吴建国', '康复建议', 6, '赵国庆', 'completed', 'normal', DATE_SUB(NOW(), INTERVAL 6 DAY), '肩部康复训练咨询', '建议每日肩部拉伸', 5, '很好', DATE_SUB(NOW(), INTERVAL 6 DAY)),
 ('郑淑英', '用药指导', 4, '王志远', 'completed', 'important', DATE_SUB(NOW(), INTERVAL 4 DAY), '冠心病用药咨询', '建议按医嘱规律服药', 4, '清晰', DATE_SUB(NOW(), INTERVAL 4 DAY));
+
+-- =====================================================
+-- 29. 多端扩展·登录账号（专家端/陪护端/陪护主管/老人端，密码均为 123456）
+--     role 取值：expert 专家 / caregiver 陪护 / supervisor 陪护主管 / elder 老人(家属代办)
+-- =====================================================
+INSERT INTO `user` (`username`, `password`, `real_name`, `role`, `status`, `community`, `account`, `phone`, `email`, `last_login`, `create_time`)
+VALUES
+('expert01', 'e10adc3949ba59abbe56e057f20f883e', '陈伟明', 'expert',     'active', '朝阳社区', 'expert01', '13800001001', NULL, NOW(), NOW()),
+('expert02', 'e10adc3949ba59abbe56e057f20f883e', '林美丽', 'expert',     'active', '海淀社区', 'expert02', '13800001002', NULL, NOW(), NOW()),
+('cg01',     'e10adc3949ba59abbe56e057f20f883e', '周丽华', 'caregiver',  'active', '朝阳社区', 'cg01',     '13800002101', NULL, NOW(), NOW()),
+('cg02',     'e10adc3949ba59abbe56e057f20f883e', '吴晓芳', 'caregiver',  'active', '海淀社区', 'cg02',     '13800002102', NULL, NOW(), NOW()),
+('sup01',    'e10adc3949ba59abbe56e057f20f883e', '郑国栋', 'supervisor', 'active', '朝阳社区', 'sup01',    '13800002201', NULL, NOW(), NOW()),
+('sup02',    'e10adc3949ba59abbe56e057f20f883e', '陈志强', 'supervisor', 'active', '海淀社区', 'sup02',    '13800002202', NULL, NOW(), NOW()),
+('fam01',    'e10adc3949ba59abbe56e057f20f883e', '张小明', 'elder',      'active', '朝阳社区', 'fam01',    '13800003001', NULL, NOW(), NOW()),
+('fam02',    'e10adc3949ba59abbe56e057f20f883e', '李大明', 'elder',      'active', '海淀社区', 'fam02',    '13800003002', NULL, NOW(), NOW());
+
+-- =====================================================
+-- 30. 多端扩展·账号绑定与社区（expert/caregiver.user_id 关联登录账号）
+-- =====================================================
+UPDATE `expert` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800001001') WHERE `phone` = '13800010001';
+UPDATE `expert` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800001002') WHERE `phone` = '13800010002';
+
+UPDATE `caregiver` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800002101') WHERE `phone` = '13800007777';
+UPDATE `caregiver` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800002102') WHERE `phone` = '13800008888';
+UPDATE `caregiver` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800002201') WHERE `phone` = '13800009999';
+UPDATE `caregiver` SET `user_id` = (SELECT `id` FROM `user` WHERE `phone` = '13800002202') WHERE `phone` = '13800006668';
+
+UPDATE `caregiver` SET `community` = '朝阳社区' WHERE `name` IN ('周丽华','冯丽丽','徐丽萍','郑国栋');
+UPDATE `caregiver` SET `community` = '海淀社区' WHERE `name` IN ('吴晓芳','何晓燕','陈志强');
+
+-- =====================================================
+-- 31. 多端扩展·服务关系（elder_caregiver / elder_expert / elder_family）
+-- =====================================================
+INSERT INTO `elder_caregiver` (`elder_id`, `elder_name`, `caregiver_id`, `caregiver_name`, `service_type`, `start_date`, `status`, `create_time`) VALUES
+(1, '张建国', 1, '周丽华', 'DAILY_CARE',     DATE_SUB(NOW(), INTERVAL 90 DAY), 'ACTIVE', NOW()),
+(4, '赵玉兰', 1, '周丽华', 'DAILY_CARE',     DATE_SUB(NOW(), INTERVAL 60 DAY), 'ACTIVE', NOW()),
+(7, '钱淑珍', 1, '周丽华', 'MEDICATION',     DATE_SUB(NOW(), INTERVAL 30 DAY), 'ACTIVE', NOW()),
+(2, '李秀英', 2, '吴晓芳', 'COGNITIVE_CARE', DATE_SUB(NOW(), INTERVAL 60 DAY), 'ACTIVE', NOW()),
+(5, '刘德胜', 2, '吴晓芳', 'COGNITIVE_CARE', DATE_SUB(NOW(), INTERVAL 40 DAY), 'ACTIVE', NOW()),
+(3, '王德发', 3, '郑国栋', 'CHRONIC_CARE',   DATE_SUB(NOW(), INTERVAL 45 DAY), 'ACTIVE', NOW()),
+(6, '陈阿妹', 3, '郑国栋', 'DAILY_CARE',     DATE_SUB(NOW(), INTERVAL 30 DAY), 'ACTIVE', NOW());
+
+INSERT INTO `elder_expert` (`elder_id`, `elder_name`, `expert_id`, `expert_name`, `relation_type`, `create_time`) VALUES
+(1, '张建国', 1, '陈伟明', 'CONSULTING', NOW()),
+(3, '王德发', 1, '陈伟明', 'CONSULTING', NOW()),
+(2, '李秀英', 2, '林美丽', 'CONSULTING', NOW());
+
+INSERT INTO `elder_family` (`elder_id`, `elder_name`, `family_name`, `relationship`, `phone`, `family_user_id`, `is_emergency`, `is_push`, `create_time`) VALUES
+(1, '张建国', '张小明', 'SON', '13900001111', (SELECT `id` FROM `user` WHERE `phone` = '13800003001'), 1, 1, NOW()),
+(2, '李秀英', '李大明', 'SON', '13900002222', (SELECT `id` FROM `user` WHERE `phone` = '13800003002'), 1, 1, NOW());
+
+-- =====================================================
+-- 32. 多端扩展·聊天会话/消息/附件样例（专家咨询 + 联系陪护）
+-- =====================================================
+INSERT INTO `conversation` (`id`, `type`, `elder_id`, `elder_name`, `family_user_id`, `family_name`, `service_user_id`, `service_id`, `service_name`, `status`, `last_message`, `last_message_time`, `create_time`) VALUES
+(1, 'CONSULT',   1, '张建国', 13, '张小明', 7,  1, '陈伟明', 'OPEN', '收到，我看一下报告再回复。',             DATE_SUB(NOW(), INTERVAL 2 HOUR), DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, 'CONSULT',   2, '李秀英', 14, '李大明', 8,  2, '林美丽', 'OPEN', '建议尽快做MMSE量表评估和头颅MRI检查。', DATE_SUB(NOW(), INTERVAL 1 DAY),  DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(3, 'CAREGIVER', 1, '张建国', 13, '张小明', 9,  1, '周丽华', 'OPEN', '好的，我今天下午会重点照看张叔叔。',     DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 1 DAY));
+
+INSERT INTO `message` (`id`, `conversation_id`, `sender_id`, `sender_role`, `sender_name`, `content`, `content_type`, `is_read`, `create_time`) VALUES
+(1, 1, 13, 'elder',     '张小明', '专家您好，张建国老人最近血压波动较大，想咨询一下用药调整。', 'TEXT', 1, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, 1, 7,  'expert',    '陈伟明', '建议先连续3天早晚测量血压记录，若持续偏高需面诊调整。',       'TEXT', 1, DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(3, 1, 13, 'elder',     '张小明', '好的，我把最近的体检报告发您看看。',                            'TEXT', 1, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(4, 1, 7,  'expert',    '陈伟明', '收到，我看一下报告再回复。',                                    'TEXT', 0, DATE_SUB(NOW(), INTERVAL 2 HOUR)),
+(5, 2, 14, 'elder',     '李大明', '林医生您好，李秀英老人近期记忆力下降明显，想咨询是否为阿尔茨海默早期。', 'TEXT', 1, DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(6, 2, 8,  'expert',    '林美丽', '建议尽快做MMSE量表评估和头颅MRI检查。',                       'TEXT', 0, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(7, 3, 13, 'elder',     '张小明', '周护工您好，麻烦今天多关注一下张建国老人午睡后的状态。',            'TEXT', 1, DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(8, 3, 9,  'caregiver', '周丽华', '好的，我今天下午会重点照看张叔叔。',                          'TEXT', 0, DATE_SUB(NOW(), INTERVAL 1 HOUR));
+
+INSERT INTO `message_attachment` (`message_id`, `conversation_id`, `file_name`, `file_type`, `file_path`, `file_size`, `create_time`) VALUES
+(3, 1, '体检报告.jpg',      'image/jpeg',      'uploads/attachments/report_001.jpg',  245000, DATE_SUB(NOW(), INTERVAL 3 HOUR)),
+(3, 1, '血压监测记录.pdf',  'application/pdf', 'uploads/attachments/bp_record.pdf',   158000, DATE_SUB(NOW(), INTERVAL 3 HOUR));
+
+-- =====================================================
+-- 33. 多端扩展·专家排班/请假申请 + 陪护课程表式排班
+-- =====================================================
+INSERT INTO `expert_schedule_apply` (`expert_id`, `expert_name`, `apply_type`, `start_time`, `end_time`, `reason`, `status`, `reviewer_id`, `reviewer_name`, `review_time`, `review_comment`, `create_time`) VALUES
+(1, '陈伟明', 'LEAVE', DATE_ADD(CURDATE(), INTERVAL 2 DAY), DATE_ADD(CURDATE(), INTERVAL 2 DAY), '医院有学术会议，申请停诊一天', 'PENDING', NULL, NULL, NULL, NULL, NOW()),
+(2, '林美丽', 'SHIFT', DATE_ADD(CURDATE(), INTERVAL 3 DAY), DATE_ADD(CURDATE(), INTERVAL 3 DAY), '家中有事，申请与周四下午调班', 'APPROVED', 1, '系统管理员', NOW(), '同意调班', NOW());
+
+INSERT INTO `caregiver_schedule` (`caregiver_id`, `caregiver_name`, `community`, `work_date`, `shift`, `start_time`, `end_time`, `note`, `create_time`) VALUES
+(1, '周丽华', '朝阳社区', DATE_ADD(CURDATE(), INTERVAL 1 DAY), 'MORNING',   '08:00', '16:00', NULL,      NOW()),
+(1, '周丽华', '朝阳社区', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'MORNING',   '08:00', '16:00', NULL,      NOW()),
+(1, '周丽华', '朝阳社区', DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'NIGHT',     '00:00', '08:00', '夜班',    NOW()),
+(2, '吴晓芳', '海淀社区', DATE_ADD(CURDATE(), INTERVAL 1 DAY), 'AFTERNOON', '16:00', '24:00', NULL,      NOW()),
+(2, '吴晓芳', '海淀社区', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'REST',      NULL,    NULL,    '休息',    NOW()),
+(2, '吴晓芳', '海淀社区', DATE_ADD(CURDATE(), INTERVAL 3 DAY), 'MORNING',   '08:00', '16:00', NULL,      NOW()),
+(3, '郑国栋', '朝阳社区', DATE_ADD(CURDATE(), INTERVAL 1 DAY), 'FULL',      '08:00', '16:00', '主管值班', NOW()),
+(3, '郑国栋', '朝阳社区', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'REST',      NULL,    NULL,    NULL,      NOW()),
+(6, '陈志强', '海淀社区', DATE_ADD(CURDATE(), INTERVAL 1 DAY), 'FULL',      '08:00', '16:00', '主管值班', NOW()),
+(6, '陈志强', '海淀社区', DATE_ADD(CURDATE(), INTERVAL 2 DAY), 'REST',      NULL,    NULL,    NULL,      NOW());
+
+-- =====================================================
+-- 34. 多端扩展·一键呼救样例 + 健康指标 7 天模拟数据
+-- =====================================================
+INSERT INTO `sos_record` (`elder_id`, `elder_name`, `family_user_id`, `sos_time`, `location`, `status`, `handler_id`, `handler_name`, `handle_time`, `note`, `relate_alert_code`, `create_time`) VALUES
+(1, '张建国', 13, DATE_SUB(NOW(), INTERVAL 3 DAY), 'A栋101室',        'RESOLVED', 9, '周丽华', DATE_SUB(NOW(), INTERVAL 3 DAY), '老人误触，已确认安全无异常', 'ALT-2024001', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 13, DATE_SUB(NOW(), INTERVAL 1 DAY), 'A栋101室卫生间',  'RESOLVED', 9, '周丽华', DATE_SUB(NOW(), INTERVAL 1 DAY), '老人起夜滑倒呼叫，已扶起并检查无外伤', 'ALT-2024004', DATE_SUB(NOW(), INTERVAL 1 DAY));
+
+-- 张建国（血压偏高，7 天趋势）
+INSERT INTO `health_metric` (`elder_id`, `elder_name`, `metric_type`, `systolic`, `diastolic`, `value`, `unit`, `measure_time`) VALUES
+(1, '张建国', 'BLOOD_PRESSURE', 158, 92, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 78,  'bpm',    DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 6.8, 'mmol/L', DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.6,'℃',      DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 152, 90, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 82,  'bpm',    DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 7.1, 'mmol/L', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 97,  '%',      DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.7,'℃',      DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 155, 94, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 76,  'bpm',    DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 6.5, 'mmol/L', DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.5,'℃',      DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 148, 88, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 80,  'bpm',    DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 6.9, 'mmol/L', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 95,  '%',      DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.8,'℃',      DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 160, 96, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 84,  'bpm',    DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 7.3, 'mmol/L', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.6,'℃',      DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 150, 90, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 79,  'bpm',    DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 6.6, 'mmol/L', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 97,  '%',      DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.5,'℃',      DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(1, '张建国', 'BLOOD_PRESSURE', 156, 92, NULL, 'mmHg',   NOW()),
+(1, '张建国', 'HEART_RATE',     NULL, NULL, 77,  'bpm',    NOW()),
+(1, '张建国', 'BLOOD_SUGAR',    NULL, NULL, 6.8, 'mmol/L', NOW()),
+(1, '张建国', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      NOW()),
+(1, '张建国', 'TEMPERATURE',    NULL, NULL, 36.7,'℃',      NOW());
+
+-- 李秀英（血压正常，7 天趋势）
+INSERT INTO `health_metric` (`elder_id`, `elder_name`, `metric_type`, `systolic`, `diastolic`, `value`, `unit`, `measure_time`) VALUES
+(2, '李秀英', 'BLOOD_PRESSURE', 128, 82, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 72,  'bpm',    DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 5.8, 'mmol/L', DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.5,'℃',      DATE_SUB(NOW(), INTERVAL 6 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 132, 85, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 74,  'bpm',    DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 6.0, 'mmol/L', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 97,  '%',      DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.6,'℃',      DATE_SUB(NOW(), INTERVAL 5 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 126, 80, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 70,  'bpm',    DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 5.6, 'mmol/L', DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.4,'℃',      DATE_SUB(NOW(), INTERVAL 4 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 130, 84, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 73,  'bpm',    DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 5.9, 'mmol/L', DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.7,'℃',      DATE_SUB(NOW(), INTERVAL 3 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 125, 78, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 71,  'bpm',    DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 6.2, 'mmol/L', DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 97,  '%',      DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.5,'℃',      DATE_SUB(NOW(), INTERVAL 2 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 128, 82, NULL, 'mmHg',   DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 72,  'bpm',    DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 5.7, 'mmol/L', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 96,  '%',      DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.5,'℃',      DATE_SUB(NOW(), INTERVAL 1 DAY)),
+(2, '李秀英', 'BLOOD_PRESSURE', 131, 84, NULL, 'mmHg',   NOW()),
+(2, '李秀英', 'HEART_RATE',     NULL, NULL, 75,  'bpm',    NOW()),
+(2, '李秀英', 'BLOOD_SUGAR',    NULL, NULL, 5.9, 'mmol/L', NOW()),
+(2, '李秀英', 'BLOOD_OXYGEN',   NULL, NULL, 97,  '%',      NOW()),
+(2, '李秀英', 'TEMPERATURE',    NULL, NULL, 36.6,'℃',      NOW());
+
+-- =====================================================
+-- 35. 多端扩展·为存量业务数据补外键 xxx_id
+-- =====================================================
+UPDATE `consult` SET `elder_id` = 1  WHERE `elder_name` = '张建国';
+UPDATE `consult` SET `elder_id` = 2  WHERE `elder_name` = '李秀英';
+UPDATE `consult` SET `elder_id` = 3  WHERE `elder_name` = '王德发';
+UPDATE `consult` SET `elder_id` = 4  WHERE `elder_name` = '赵玉兰';
+UPDATE `consult` SET `elder_id` = 9  WHERE `elder_name` = '周秀兰';
+UPDATE `consult` SET `elder_id` = 10 WHERE `elder_name` = '吴建国';
+UPDATE `consult` SET `elder_id` = 11 WHERE `elder_name` = '郑淑英';
+UPDATE `consult` SET `conversation_id` = 1 WHERE `elder_name` = '张建国' AND `expert_id` = 1;
+UPDATE `consult` SET `conversation_id` = 2 WHERE `elder_name` = '李秀英' AND `expert_id` = 2;
+
+UPDATE `schedule_task` SET `elder_id` = 1 WHERE `elder_name` = '张建国';
+UPDATE `schedule_task` SET `elder_id` = 2 WHERE `elder_name` = '李秀英';
+UPDATE `schedule_task` SET `elder_id` = 3 WHERE `elder_name` = '王德发';
+UPDATE `schedule_task` SET `elder_id` = 4 WHERE `elder_name` = '赵玉兰';
+UPDATE `schedule_task` SET `elder_id` = 6 WHERE `elder_name` = '陈阿妹';
+UPDATE `schedule_task` SET `handler_id` = 9  WHERE `handler` = '周丽华';
+UPDATE `schedule_task` SET `handler_id` = 10 WHERE `handler` = '吴晓芳';
+UPDATE `schedule_task` SET `handler_id` = 11 WHERE `handler` = '郑国栋';
+UPDATE `schedule_task` SET `handler_id` = 2  WHERE `handler` = '张三';
+
+UPDATE `intervention` SET `leader_id` = 9  WHERE `leader` = '周丽华';
+UPDATE `intervention` SET `leader_id` = 10 WHERE `leader` = '吴晓芳';
+UPDATE `intervention` SET `leader_id` = 11 WHERE `leader` = '郑国栋';
+
+UPDATE `fall_record` SET `handler_id` = 2  WHERE `handler` = '张三';
+UPDATE `fall_record` SET `handler_id` = 9  WHERE `handler` = '周丽华';
+UPDATE `fall_record` SET `handler_id` = 10 WHERE `handler` = '吴晓芳';
+
+UPDATE `health_note` SET `recorder_id` = 9  WHERE `recorder` = '周丽华';
+UPDATE `health_note` SET `recorder_id` = 10 WHERE `recorder` = '吴晓芳';
+UPDATE `health_note` SET `recorder_id` = 11 WHERE `recorder` = '郑国栋';
+
+-- =====================================================
+-- 35. 陪护请假/换班申请样例（护工提交 → 主管审批）
+-- =====================================================
+INSERT INTO `caregiver_schedule_apply` (`caregiver_id`, `caregiver_name`, `community`, `apply_type`, `start_time`, `end_time`, `reason`, `status`, `reviewer_id`, `reviewer_name`, `review_time`, `review_comment`, `create_time`) VALUES
+(1, '周丽华', '朝阳社区', 'LEAVE',  DATE_ADD(CURDATE(), INTERVAL 2 DAY), DATE_ADD(CURDATE(), INTERVAL 2 DAY), '家中有事，申请请假一天', 'PENDING',  NULL, NULL, NULL, NULL, NOW()),
+(2, '吴晓芳', '海淀社区', 'SHIFT',  DATE_ADD(CURDATE(), INTERVAL 3 DAY), DATE_ADD(CURDATE(), INTERVAL 3 DAY), '申请与同事调班',           'PENDING',  NULL, NULL, NULL, NULL, NOW()),
+(1, '周丽华', '朝阳社区', 'LEAVE',  DATE_SUB(CURDATE(), INTERVAL 3 DAY), DATE_SUB(CURDATE(), INTERVAL 3 DAY), '身体不适请假半天',         'APPROVED', 13,   '郑国栋', NOW(), '同意请假', NOW());
+
+-- =====================================================
+-- 36. 老人端用药提醒补充（张建国）
+-- =====================================================
+INSERT INTO `schedule_task` (`task_code`, `task_type`, `elder_id`, `elder_name`, `location`, `priority`, `task_status`, `trigger_reson`, `note`, `task_date`, `create_time`) VALUES
+('TASK-2024012', 'MEDICATION', 1, '张建国', 'A栋101室', 'important', 'pending', '降压药服用提醒', '早晚各一次，饭后服用，注意监测血压', DATE_ADD(CURDATE(), INTERVAL 1 DAY), NOW());
 
 -- =====================================================
 -- 填充完成

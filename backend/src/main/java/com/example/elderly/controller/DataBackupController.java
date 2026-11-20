@@ -1,9 +1,11 @@
 package com.example.elderly.controller;
 
 import lombok.RequiredArgsConstructor;
+import com.example.elderly.annotation.RequireRole;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.example.elderly.common.PageResult;
 import com.example.elderly.common.Result;
+import com.example.elderly.common.exception.BusinessException;
 import com.example.elderly.dto.BackupOperateDTO;
 import com.example.elderly.dto.PageQueryDTO;
 import com.example.elderly.entity.DataBackup;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/backup")
+@RequireRole({"admin", "staff"})
 public class DataBackupController {
 
     private final IDataBackupService dataBackupService;
@@ -42,12 +45,18 @@ public class DataBackupController {
     @PostMapping("/restore/{id}")
     public Result<String> restore(@PathVariable Long id) {
         boolean flag = dataBackupService.restoreBackup(id);
-        return flag ? Result.success("备份恢复成功") : Result.fail(500, "备份恢复失败");
+        if (!flag) {
+            throw new BusinessException(500, "备份恢复失败");
+        }
+        return Result.success("备份恢复成功");
     }
 
     @DeleteMapping("/{id}")
     public Result<String> delete(@PathVariable Long id) {
         boolean flag = dataBackupService.removeBackup(id);
-        return flag ? Result.success("备份删除成功") : Result.fail(500, "备份删除失败");
+        if (!flag) {
+            throw new BusinessException(500, "备份删除失败");
+        }
+        return Result.success("备份删除成功");
     }
 }

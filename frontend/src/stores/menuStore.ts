@@ -3,6 +3,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { getMenus, type BackendMenuItem } from '@/api/menu'
 
 // ===== 类型定义 =====
 export interface MenuItem {
@@ -254,6 +255,43 @@ export const useMenuStore = defineStore('menuStore', () => {
   //   menuItems.value = res.data
   // }
 
+  // ===== 后端动态菜单（按角色，供 layout 侧边栏优先使用） =====
+  const dynamicMenus = ref<BackendMenuItem[]>([])
+
+  /** 后端菜单树的侧边栏渲染结构（分组节点带 children，叶子节点不带） */
+  const dynamicSidebarItems = computed<BackendMenuItem[]>(() => dynamicMenus.value)
+
+  /** 从后端拉取当前角色的菜单树 */
+  async function fetchDynamicMenus(): Promise<boolean> {
+    try {
+      const res = await getMenus()
+      const body = res.data
+      if (body.code === 200 && body.data) {
+        dynamicMenus.value = body.data
+        return true
+      }
+      return false
+    } catch (e) {
+      console.warn('[menuStore] 加载后端菜单失败，使用本地兜底', e)
+      return false
+    }
+  }
+
+  /** 在后端菜单树中按 path 查找菜单名称（供面包屑/标签页使用） */
+  function findMenuNameByPath(path: string): string {
+    const walk = (nodes: BackendMenuItem[]): string => {
+      for (const n of nodes) {
+        if (n.path === path) return n.name
+        if (n.children?.length) {
+          const r = walk(n.children)
+          if (r) return r
+        }
+      }
+      return ''
+    }
+    return walk(dynamicMenus.value)
+  }
+
   return {
     // state
     menuItems,
@@ -265,6 +303,9 @@ export const useMenuStore = defineStore('menuStore', () => {
     totalCount,
     visibleCount,
     hiddenCount,
+    // 后端动态菜单
+    dynamicMenus,
+    dynamicSidebarItems,
     // actions
     loadConfig,
     saveConfig,
@@ -273,5 +314,7 @@ export const useMenuStore = defineStore('menuStore', () => {
     setIcon,
     updateName,
     resetDefault,
+    fetchDynamicMenus,
+    findMenuNameByPath,
   }
 })

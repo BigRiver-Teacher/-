@@ -2,6 +2,7 @@ package com.example.elderly.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -25,6 +26,8 @@ public class DataBackup {
     /** 状态: SUCCESS/FAILED/IN_PROGRESS */
     @Schema(description = "状态: SUCCESS/FAILED/IN_PROGRESS")
     private String status;
-    @Schema(description = "文件路径")
+    /** 文件路径：仅服务端内部使用，不对外暴露 */
+    @JsonIgnore
+    @Schema(description = "文件路径（内部字段，不对外暴露）")
     private String filePath;
 }
