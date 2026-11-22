@@ -1,119 +1,151 @@
 <template>
-  <div class="common-layout">
-    <el-container class="full-container">
-      <el-header>
-        <el-row class="row-bg" justify="space-evenly" align="middle">
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/person')"
-            >
-              人员管理
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/export')"
-            >
-              专家管理
-            </div>
-          </el-col>
-          <el-col :span="6">
-            <div class="grid-content ep-bg-purple-light">
-              <div class="logo">
-                <el-icon :size="24" color="#409eff"><Management /></el-icon>
-                <h2 style="cursor: pointer" @click="router.push('/home')">朝夕护行 设备管理</h2>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/monitor')"
-            >
-              监控管理
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/device')"
-            >
-              设备管理
-            </div>
-          </el-col>
-        </el-row>
-      </el-header>
-
-      <el-main>
-        <div class="bd">
-          <!-- 左列 -->
-          <div class="left">
-            <div class="top">
-              <div class="chart-title" @click="router.push('/home/device')" style="cursor: pointer">
-                在线设备
-              </div>
-              <div id="deviceIng" class="chart-container"></div>
-            </div>
-            <div class="bottom">
-              <div class="chart-title" @click="router.push('/home/device')" style="cursor: pointer">
-                故障设备统计
-              </div>
-              <div id="deviceTrouble" class="chart-container"></div>
-            </div>
+  <BigScreenShell active="device">
+    <main class="bs-main bs-device">
+      <!-- ===== KPI 指标带 ===== -->
+      <div class="device-kpis">
+        <div class="bs-kpi" style="--kpi-color: #38e1ff; --d: 0.04s">
+          <div class="bs-kpi__label"><el-icon><Cpu /></el-icon>设备总数</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.totalDevices" /></span>
+            <span class="bs-kpi__unit">台</span>
           </div>
+          <el-icon class="bs-kpi__wm"><Cpu /></el-icon>
+        </div>
 
-          <!-- 中列 -->
-          <div class="middle">
-            <div class="top">
-              <div class="chart-title" @click="router.push('/home/device')" style="cursor: pointer">
-                设备数量
-              </div>
-              <div id="device" class="chart-container"></div>
-            </div>
-            <div class="bottom">
-              <div class="chart-title" @click="router.push('/home/device')" style="cursor: pointer">
-                设备占比
-              </div>
-              <div id="deviceRound" class="chart-container"></div>
-            </div>
+        <div class="bs-kpi" style="--kpi-color: #22d3a7; --d: 0.08s">
+          <div class="bs-kpi__label"><el-icon><CircleCheck /></el-icon>在线设备</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.onlineDevices" /></span>
+            <span class="bs-kpi__unit">台</span>
           </div>
+          <div class="bs-kpi__bar" :style="{ '--w': onlineRate + '%' }"><i></i></div>
+          <el-icon class="bs-kpi__wm"><CircleCheck /></el-icon>
+        </div>
 
-          <!-- 右列 -->
-          <div class="right">
-            <div class="top">
-              <div
-                class="chart-title"
-                @click="router.push('/home/alert/list')"
-                style="cursor: pointer"
-              >
-                告警次数
+        <div class="bs-kpi" style="--kpi-color: #f5a524; --d: 0.12s">
+          <div class="bs-kpi__label"><el-icon><SwitchButton /></el-icon>离线设备</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.offlineDevices" /></span>
+            <span class="bs-kpi__unit">台</span>
+          </div>
+          <div class="bs-kpi__bar" :style="{ '--w': offlineRate + '%' }"><i></i></div>
+          <el-icon class="bs-kpi__wm"><SwitchButton /></el-icon>
+        </div>
+
+        <div class="bs-kpi" style="--kpi-color: #ff5c7c; --d: 0.16s">
+          <div class="bs-kpi__label"><el-icon><WarningFilled /></el-icon>故障设备</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.faultDevices" /></span>
+            <span class="bs-kpi__unit">台</span>
+          </div>
+          <div class="bs-kpi__bar" :style="{ '--w': faultRate + '%' }"><i></i></div>
+          <el-icon class="bs-kpi__wm"><WarningFilled /></el-icon>
+        </div>
+
+        <div class="bs-kpi" style="--kpi-color: #8b5cf6; --d: 0.2s">
+          <div class="bs-kpi__label"><el-icon><Connection /></el-icon>绑定率</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.bindRate" /></span>
+            <span class="bs-kpi__unit">%</span>
+          </div>
+          <div class="bs-kpi__bar" :style="{ '--w': stat.bindRate + '%' }"><i></i></div>
+          <el-icon class="bs-kpi__wm"><Connection /></el-icon>
+        </div>
+
+        <div class="bs-kpi" style="--kpi-color: #4f8cff; --d: 0.24s">
+          <div class="bs-kpi__label"><el-icon><BellFilled /></el-icon>今日告警</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="stat.todayAlertCount" /></span>
+            <span class="bs-kpi__unit">次</span>
+          </div>
+          <el-icon class="bs-kpi__wm"><BellFilled /></el-icon>
+        </div>
+      </div>
+
+      <!-- ===== 在线设备趋势 ===== -->
+      <section class="bs-panel" style="grid-column: span 4; --d: 0.1s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">在线设备趋势</span>
+          <span class="bs-panel__tag">近 7 日 · 峰值 <b>{{ onlinePeak }}</b> 台</span>
+        </header>
+        <div class="bs-panel__body">
+          <div id="deviceOnlineTrend" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 设备占比 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.14s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">设备运行状态占比</span>
+          <span class="bs-panel__tag" @click="router.push('/home/device')" style="cursor: pointer"
+            >明细 <el-icon><ArrowRight /></el-icon
+          ></span>
+        </header>
+        <div class="bs-panel__body">
+          <div class="bs-donut">
+            <div class="bs-donut__chart">
+              <div id="deviceStatusPie" class="bs-chart"></div>
+              <div class="bs-donut__center">
+                <b>{{ stat.totalDevices }}</b>
+                <span>设备总数</span>
               </div>
-              <div id="deviceWarning" class="chart-container"></div>
             </div>
-            <div class="bottom">
-              <div class="chart-title" @click="router.push('/home/device')" style="cursor: pointer">
-                未绑定设备
-              </div>
-              <div id="deviceNothing" class="chart-container"></div>
-            </div>
+            <ul class="bs-legend">
+              <li v-for="item in statusLegend" :key="item.name">
+                <i :style="{ '--c': item.color }"></i>
+                <span>{{ item.name }}</span>
+                <b>{{ item.value }}</b>
+                <em>{{ item.percent }}%</em>
+              </li>
+            </ul>
           </div>
         </div>
-      </el-main>
-    </el-container>
-  </div>
+      </section>
+
+      <!-- ===== 告警次数趋势 ===== -->
+      <section class="bs-panel" style="grid-column: span 3; --d: 0.18s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">告警触发趋势</span>
+          <span class="bs-panel__tag"
+            >近 7 日合计 <b>{{ alertTotal }}</b> 次 ·
+            峰值 <b>{{ alertPeak }}</b> 次</span
+          >
+        </header>
+        <div class="bs-panel__body">
+          <div id="deviceAlertTrend" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 故障类型 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.22s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">故障类型分布</span>
+          <span class="bs-panel__tag">按发生次数排序</span>
+        </header>
+        <div class="bs-panel__body">
+          <div id="deviceFault" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 绑定率 ===== -->
+      <section class="bs-panel" style="grid-column: span 1; --d: 0.26s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">设备绑定率</span>
+        </header>
+        <div class="bs-panel__body">
+          <div id="deviceBindGauge" class="bs-chart"></div>
+        </div>
+      </section>
+    </main>
+  </BigScreenShell>
 </template>
 
 <script setup lang="ts">
-import { Management } from '@element-plus/icons-vue'
-import { onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { computed, nextTick, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
+import BigScreenShell from '@/components/BigScreenShell.vue'
+import CountUp from '@/components/CountUp.vue'
 import {
   getDeviceStatistics,
   getDeviceOnlineTrend,
@@ -121,689 +153,422 @@ import {
   getDeviceFaultStatistics,
 } from '@/api/stats'
 import { alertTypeLabel } from '@/utils/echartLabels'
+import {
+  BS_SEMANTIC,
+  areaGradient,
+  bsAnimation,
+  bsAxis,
+  bsEmpty,
+  bsGrid,
+  bsTooltip,
+  hexA,
+  hGradient,
+  vGradient,
+} from '@/utils/echartsTheme'
 
 const router = useRouter()
 
-// ===== 图表数据（后端统计接口填充） =====
-let deviceStat = {
+/* ================================================================
+   数据
+   ================================================================ */
+const stat = reactive({
   totalDevices: 0,
   onlineDevices: 0,
   offlineDevices: 0,
   faultDevices: 0,
   bindRate: 0,
   todayAlertCount: 0,
-}
-let onlineTrend = { categories: [], series: [] }
-let alertTrend = { categories: [], series: [] }
-let faultStat = { categories: [], series: [] }
+})
 
-const TREND_GRADIENTS = [
-  [
-    { offset: 0, color: '#a8d8ff' },
-    { offset: 1, color: '#409eff' },
-  ],
-  [
-    { offset: 0, color: '#79bbff' },
-    { offset: 1, color: '#337ecc' },
-  ],
-  [
-    { offset: 0, color: '#337ecc' },
-    { offset: 1, color: '#1a5a9c' },
-  ],
-  [
-    { offset: 0, color: '#67c23a' },
-    { offset: 1, color: '#95d475' },
-  ],
-]
-const LINE_COLORS = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c']
+const onlineTrend = reactive<{ categories: string[]; data: number[] }>({ categories: [], data: [] })
+const alertTrend = reactive<{ categories: string[]; data: number[] }>({ categories: [], data: [] })
+const faultDist = reactive<{ categories: string[]; data: number[] }>({ categories: [], data: [] })
 
-// ===== 从后端加载图表数据 =====
+const onlineRate = computed(() =>
+  stat.totalDevices ? Math.round((stat.onlineDevices / stat.totalDevices) * 100) : 0,
+)
+const offlineRate = computed(() =>
+  stat.totalDevices ? Math.round((stat.offlineDevices / stat.totalDevices) * 100) : 0,
+)
+const faultRate = computed(() =>
+  stat.totalDevices ? Math.round((stat.faultDevices / stat.totalDevices) * 100) : 0,
+)
+const onlinePeak = computed(() => (onlineTrend.data.length ? Math.max(...onlineTrend.data) : 0))
+const alertTotal = computed(() => alertTrend.data.reduce((a, b) => a + b, 0))
+const alertPeak = computed(() => (alertTrend.data.length ? Math.max(...alertTrend.data) : 0))
+
+const statusLegend = computed(() => {
+  const total = stat.totalDevices || 1
+  return [
+    { name: '在线', value: stat.onlineDevices, color: BS_SEMANTIC.online },
+    { name: '离线', value: stat.offlineDevices, color: BS_SEMANTIC.offline },
+    { name: '故障', value: stat.faultDevices, color: BS_SEMANTIC.fault },
+  ].map((i) => ({ ...i, percent: Math.round((i.value / total) * 100) }))
+})
+
+/* ================================================================
+   加载
+   ================================================================ */
 async function loadChartData() {
   try {
     const res = await getDeviceStatistics()
-    deviceStat = res.data.data || deviceStat
-  } catch (e) {
+    Object.assign(stat, res.data.data || {})
+  } catch {
     /* 后端不可用时保持空数据 */
   }
   try {
     const res = await getDeviceOnlineTrend()
-    onlineTrend = res.data.data || onlineTrend
-  } catch (e) {}
+    const d = res.data.data
+    onlineTrend.categories = d?.categories || []
+    onlineTrend.data = d?.series?.[0]?.data || []
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getDeviceAlertTrend()
-    alertTrend = res.data.data || alertTrend
-  } catch (e) {}
+    const d = res.data.data
+    alertTrend.categories = d?.categories || []
+    alertTrend.data = d?.series?.[0]?.data || []
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getDeviceFaultStatistics()
-    const data = res.data.data
-    if (data) {
-      // 后端返回告警类型枚举 code（FALL/DEVICE_OFFLINE/...），转成中文再显示
-      faultStat = {
-        ...data,
-        categories: (data.categories || []).map((c) => alertTypeLabel(c)),
-      }
+    const d = res.data.data
+    if (d) {
+      // 后端返回告警类型枚举 code，转中文后按次数倒序，条形图更易读
+      const pairs = (d.categories || []).map((c: string, i: number) => ({
+        name: alertTypeLabel(c),
+        value: d.series?.[0]?.data?.[i] ?? 0,
+      }))
+      pairs.sort((a, b) => a.value - b.value)
+      faultDist.categories = pairs.map((p) => p.name)
+      faultDist.data = pairs.map((p) => p.value)
     }
-  } catch (e) {}
+  } catch {
+    /* ignore */
+  }
   nextTick(() => initCharts())
 }
 
-let chartDevice = null
-let chartDeviceRound = null
-let chartDeviceIng = null
-let chartDeviceWarning = null
-let chartDeviceTrouble = null
-let chartDeviceNothing = null
+/* ================================================================
+   图表
+   ================================================================ */
+let chartOnline: echarts.ECharts | null = null
+let chartStatus: echarts.ECharts | null = null
+let chartAlert: echarts.ECharts | null = null
+let chartFault: echarts.ECharts | null = null
+let chartBind: echarts.ECharts | null = null
 
 function initCharts() {
-  // 销毁旧实例
-  ;[
-    chartDevice,
-    chartDeviceRound,
-    chartDeviceIng,
-    chartDeviceWarning,
-    chartDeviceTrouble,
-    chartDeviceNothing,
-  ].forEach((chart) => {
-    if (chart) {
-      chart.dispose()
-    }
-  })
-  chartDevice = null
-  chartDeviceRound = null
-  chartDeviceIng = null
-  chartDeviceWarning = null
-  chartDeviceTrouble = null
-  chartDeviceNothing = null
+  ;[chartOnline, chartStatus, chartAlert, chartFault, chartBind].forEach((c) => c?.dispose())
+  chartOnline = chartStatus = chartAlert = chartFault = chartBind = null
 
-  // ===== 1. 设备数量（柱状图） =====
-  const device = document.getElementById('device')
-  if (device) {
-    chartDevice = echarts.init(device)
-    chartDevice.setOption({
-      tooltip: {
+  /* 1. 在线设备趋势 —— 折线 + 面积渐变 */
+  const onlineEl = document.getElementById('deviceOnlineTrend')
+  if (onlineEl) {
+    chartOnline = echarts.init(onlineEl)
+    chartOnline.setOption({
+      ...bsAnimation,
+      ...bsEmpty(onlineTrend.data.length),
+      tooltip: bsTooltip({
         trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        formatter: function (params) {
-          const p = params[0]
-          return `<strong>${p.name}</strong><br/>数量：${p.value} 台`
-        },
-      },
-      grid: {
-        left: '8%',
-        right: '5%',
-        bottom: '12%',
-        top: '5%',
-        containLabel: true,
-      },
+        axisPointer: { type: 'line', lineStyle: { color: 'rgba(56,225,255,0.45)' } },
+        valueFormatter: (v: number) => `${v} 台`,
+      }),
+      grid: { ...bsGrid, top: 34, right: 30 },
       xAxis: {
         type: 'category',
-        data: ['设备总数', '在线设备', '离线设备', '故障设备'],
-        axisTick: { alignWithLabel: true },
-        axisLabel: {
-          fontSize: 12,
-          color: '#666',
-        },
-        axisLine: {
-          lineStyle: { color: '#e8e8e8' },
-        },
+        boundaryGap: false,
+        data: onlineTrend.categories,
+        ...bsAxis,
+        splitLine: { show: false },
       },
       yAxis: {
         type: 'value',
-        name: '数量（台）',
-        nameTextStyle: { fontSize: 12, color: '#999' },
-        axisLabel: { fontSize: 12, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
+        minInterval: 1,
+        ...bsAxis,
+        splitLine: { lineStyle: { color: 'rgba(120,170,230,0.08)', type: 'dashed' } },
       },
       series: [
         {
-          name: '数量',
-          type: 'bar',
-          barWidth: '50%',
-          data: [
-            deviceStat.totalDevices,
-            deviceStat.onlineDevices,
-            deviceStat.offlineDevices,
-            deviceStat.faultDevices,
-          ],
-          itemStyle: {
-            borderRadius: [4, 4, 0, 0],
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#409eff' },
-              { offset: 1, color: '#79bbff' },
-            ]),
+          name: '在线设备数',
+          type: 'line',
+          smooth: true,
+          showSymbol: false,
+          symbolSize: 7,
+          data: onlineTrend.data,
+          lineStyle: {
+            width: 2.4,
+            color: BS_SEMANTIC.cyan,
+            shadowColor: hexA(BS_SEMANTIC.cyan, 0.6),
+            shadowBlur: 14,
           },
-        },
-      ],
-    })
-  }
-
-  // ===== 2. 设备占比（饼图） =====
-  const deviceRound = document.getElementById('deviceRound')
-  if (deviceRound) {
-    chartDeviceRound = echarts.init(deviceRound)
-    chartDeviceRound.setOption({
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c}台 ({d}%)',
-      },
-      legend: {
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
-        textStyle: { fontSize: 12, color: '#666' },
-        itemWidth: 14,
-        itemHeight: 14,
-      },
-      series: [
-        {
-          name: '设备占比',
-          type: 'pie',
-          radius: ['35%', '72%'],
-          center: ['45%', '50%'],
-          avoidLabelOverlap: false,
-          padAngle: 2,
-          itemStyle: {
-            borderRadius: 6,
-            borderColor: '#fff',
-            borderWidth: 2,
-          },
-          label: {
-            show: true,
-            formatter: '{d}%',
-            fontSize: 12,
-            color: '#666',
-          },
-          labelLine: {
-            length: 12,
-            length2: 8,
-          },
-          emphasis: {
+          itemStyle: { color: BS_SEMANTIC.cyan },
+          areaStyle: { color: areaGradient(BS_SEMANTIC.cyan, 0.32, 0.01) },
+          emphasis: { focus: 'series', scale: 1.4 },
+          markPoint: {
+            symbol: 'circle',
+            symbolSize: 9,
+            data: [{ type: 'max', name: '峰值' }],
+            itemStyle: {
+              color: '#04121f',
+              borderColor: BS_SEMANTIC.cyan,
+              borderWidth: 2,
+              shadowBlur: 14,
+              shadowColor: hexA(BS_SEMANTIC.cyan, 0.9),
+            },
             label: {
               show: true,
-              fontSize: 16,
-              fontWeight: 'bold',
+              position: 'top',
+              distance: 8,
+              formatter: '{c}',
+              color: '#bfe9ff',
+              fontSize: 11,
+              fontWeight: 700,
             },
-            scale: true,
-            scaleSize: 6,
           },
-          data: [
-            { value: deviceStat.onlineDevices, name: '在线', itemStyle: { color: '#409eff' } },
-            { value: deviceStat.offlineDevices, name: '离线', itemStyle: { color: '#e6a23c' } },
-            { value: deviceStat.faultDevices, name: '故障', itemStyle: { color: '#f56c6c' } },
-          ],
         },
       ],
     })
   }
 
-  // ===== 3. 在线设备（横向柱状图） =====
-  const deviceIng = document.getElementById('deviceIng')
-  if (deviceIng) {
-    chartDeviceIng = echarts.init(deviceIng)
-    chartDeviceIng.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        formatter: function (params) {
-          let html = `<strong>${params[0].name}</strong><br/>`
-          params.forEach((p) => {
-            html += `${p.seriesName}：${p.value} 台<br/>`
-          })
-          return html
+  /* 2. 设备状态占比 —— 环形 */
+  const statusEl = document.getElementById('deviceStatusPie')
+  if (statusEl) {
+    chartStatus = echarts.init(statusEl)
+    chartStatus.setOption({
+      ...bsAnimation,
+      tooltip: bsTooltip({ trigger: 'item', formatter: '{b}：{c} 台（{d}%）' }),
+      series: [
+        {
+          name: '设备状态',
+          type: 'pie',
+          radius: ['58%', '82%'],
+          center: ['50%', '50%'],
+          avoidLabelOverlap: true,
+          padAngle: 3,
+          label: { show: false },
+          labelLine: { show: false },
+          itemStyle: {
+            borderColor: 'rgba(6,14,28,0.92)',
+            borderWidth: 2,
+            borderRadius: 5,
+          },
+          emphasis: {
+            scale: true,
+            scaleSize: 8,
+            itemStyle: { shadowBlur: 22, shadowColor: 'rgba(56,225,255,0.55)' },
+          },
+          data: [
+            { name: '在线', value: stat.onlineDevices, itemStyle: { color: BS_SEMANTIC.online } },
+            { name: '离线', value: stat.offlineDevices, itemStyle: { color: BS_SEMANTIC.offline } },
+            { name: '故障', value: stat.faultDevices, itemStyle: { color: BS_SEMANTIC.fault } },
+          ].filter((d) => d.value > 0),
         },
-      },
-      legend: {
-        top: 0,
-        right: 0,
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      grid: {
-        left: '10%',
-        right: '5%',
-        bottom: '5%',
-        top: '18%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'value',
-        name: '在线数量',
-        nameTextStyle: { fontSize: 11, color: '#999' },
-        axisLabel: { fontSize: 11, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
-      },
-      yAxis: {
-        type: 'category',
-        data: onlineTrend.categories,
-        axisLabel: { fontSize: 12, color: '#666' },
-        axisLine: {
-          lineStyle: { color: '#e8e8e8' },
-        },
-      },
-      series: onlineTrend.series.map((s, i) => ({
-        name: s.name,
-        type: 'bar',
-        stack: 'total',
-        data: s.data,
-        itemStyle: {
-          borderRadius: i === onlineTrend.series.length - 1 ? [0, 4, 4, 0] : 0,
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, TREND_GRADIENTS[i % TREND_GRADIENTS.length]),
-        },
-      })),
+      ],
     })
   }
 
-  // ===== 4. 告警次数（折线图） =====
-  const deviceWarning = document.getElementById('deviceWarning')
-  if (deviceWarning) {
-    chartDeviceWarning = echarts.init(deviceWarning)
-    chartDeviceWarning.setOption({
-      tooltip: {
+  /* 3. 告警触发趋势 —— 柱状，峰值高亮 */
+  const alertEl = document.getElementById('deviceAlertTrend')
+  if (alertEl) {
+    chartAlert = echarts.init(alertEl)
+    const peak = alertPeak.value
+    chartAlert.setOption({
+      ...bsAnimation,
+      ...bsEmpty(alertTrend.data.length),
+      tooltip: bsTooltip({
         trigger: 'axis',
-        formatter: function (params) {
-          let html = `<strong>${params[0].axisValue}</strong><br/>`
-          params.forEach((p) => {
-            html += `${p.marker} ${p.seriesName}：${p.value} 次<br/>`
-          })
-          return html
-        },
-      },
-      legend: {
-        top: 0,
-        right: 0,
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      grid: {
-        left: '8%',
-        right: '5%',
-        bottom: '10%',
-        top: '18%',
-        containLabel: true,
-      },
+        axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(56,225,255,0.06)' } },
+        valueFormatter: (v: number) => `${v} 次`,
+      }),
+      grid: { ...bsGrid, top: 26, right: 18 },
       xAxis: {
         type: 'category',
-        boundaryGap: false,
         data: alertTrend.categories,
-        axisLabel: { fontSize: 11, color: '#666' },
-        axisLine: {
-          lineStyle: { color: '#e8e8e8' },
-        },
+        ...bsAxis,
+        splitLine: { show: false },
       },
       yAxis: {
         type: 'value',
-        name: '告警次数',
-        nameTextStyle: { fontSize: 11, color: '#999' },
-        axisLabel: { fontSize: 11, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
+        minInterval: 1,
+        ...bsAxis,
+        splitLine: { lineStyle: { color: 'rgba(120,170,230,0.08)', type: 'dashed' } },
       },
-      series: alertTrend.series.map((s) => ({
-        name: s.name,
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2 },
-        areaStyle: {
-          opacity: 0.15,
+      series: [
+        {
+          name: '告警次数',
+          type: 'bar',
+          barWidth: '44%',
+          data: alertTrend.data,
+          itemStyle: {
+            borderRadius: [5, 5, 0, 0],
+            color: (p: { value: number }) =>
+              p.value >= peak && peak > 0
+                ? vGradient(BS_SEMANTIC.rose, hexA(BS_SEMANTIC.amber, 0.35))
+                : vGradient(hexA(BS_SEMANTIC.cyan, 0.85), hexA(BS_SEMANTIC.blue, 0.12)),
+          },
+          emphasis: {
+            itemStyle: { shadowBlur: 18, shadowColor: hexA(BS_SEMANTIC.cyan, 0.65) },
+          },
         },
-        data: s.data,
-      })),
+      ],
     })
   }
 
-  // ===== 5. 故障设备统计（横向柱状图） =====
-  const deviceTrouble = document.getElementById('deviceTrouble')
-  if (deviceTrouble) {
-    chartDeviceTrouble = echarts.init(deviceTrouble)
-    chartDeviceTrouble.setOption({
-      tooltip: {
+  /* 4. 故障类型 —— 横向条形 */
+  const faultEl = document.getElementById('deviceFault')
+  if (faultEl) {
+    chartFault = echarts.init(faultEl)
+    chartFault.setOption({
+      ...bsAnimation,
+      ...bsEmpty(faultDist.data.length),
+      tooltip: bsTooltip({
         trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        formatter: function (params) {
-          const p = params[0]
-          return `<strong>${p.name}</strong><br/>故障数量：${p.value} 台`
-        },
-      },
-      grid: {
-        left: '10%',
-        right: '12%',
-        bottom: '8%',
-        top: '5%',
-        containLabel: true,
-      },
+        axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(56,225,255,0.06)' } },
+        valueFormatter: (v: number) => `${v} 次`,
+      }),
+      grid: { top: 6, left: 4, right: 34, bottom: 2, containLabel: true },
       xAxis: {
         type: 'value',
-        name: '故障数量',
-        nameTextStyle: { fontSize: 11, color: '#999' },
-        axisLabel: { fontSize: 11, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
+        minInterval: 1,
+        ...bsAxis,
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: 'rgba(120,170,230,0.08)', type: 'dashed' } },
       },
       yAxis: {
         type: 'category',
-        data: faultStat.categories,
-        inverse: true,
-        axisLabel: { fontSize: 12, color: '#666' },
-        axisLine: {
-          lineStyle: { color: '#e8e8e8' },
-        },
+        data: faultDist.categories,
+        ...bsAxis,
+        axisLine: { show: false },
+        axisLabel: { color: '#9db8d6', fontSize: 11.5 },
       },
-      series: faultStat.series.map((s) => ({
-        name: s.name,
-        type: 'bar',
-        data: s.data,
-        barWidth: '50%',
-        label: {
-          show: true,
-          position: 'right',
-          fontSize: 12,
-          color: '#f56c6c',
-          fontWeight: 'bold',
+      series: [
+        {
+          name: '故障次数',
+          type: 'bar',
+          barWidth: 11,
+          data: faultDist.data,
+          label: {
+            show: true,
+            position: 'right',
+            distance: 8,
+            formatter: '{c}',
+            color: '#eaf7ff',
+            fontSize: 12,
+            fontWeight: 700,
+          },
+          itemStyle: {
+            borderRadius: [0, 6, 6, 0],
+            color: hGradient(hexA(BS_SEMANTIC.rose, 0.55), BS_SEMANTIC.rose),
+          },
+          showBackground: true,
+          backgroundStyle: {
+            color: 'rgba(86,148,220,0.08)',
+            borderRadius: [0, 6, 6, 0],
+          },
+          emphasis: { itemStyle: { shadowBlur: 16, shadowColor: hexA(BS_SEMANTIC.rose, 0.8) } },
         },
-        itemStyle: {
-          borderRadius: [0, 4, 4, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#fdaaaa' },
-            { offset: 1, color: '#f56c6c' },
-          ]),
-        },
-      })),
+      ],
     })
   }
 
-  // ===== 6. 未绑定设备（折线图） =====
-  const deviceNothing = document.getElementById('deviceNothing')
-  if (deviceNothing) {
-    chartDeviceNothing = echarts.init(deviceNothing)
-    chartDeviceNothing.setOption({
-      tooltip: {
-        trigger: 'axis',
-        formatter: function (params) {
-          let html = `<strong>${params[0].axisValue}</strong><br/>`
-          params.forEach((p) => {
-            html += `${p.marker} ${p.seriesName}：${p.value} 台<br/>`
-          })
-          return html
+  /* 5. 绑定率 —— 仪表盘 */
+  const bindEl = document.getElementById('deviceBindGauge')
+  if (bindEl) {
+    chartBind = echarts.init(bindEl)
+    chartBind.setOption({
+      ...bsAnimation,
+      tooltip: bsTooltip({ trigger: 'item', formatter: '绑定率：{c}%' }),
+      series: [
+        {
+          type: 'gauge',
+          startAngle: 215,
+          endAngle: -35,
+          min: 0,
+          max: 100,
+          radius: '96%',
+          center: ['50%', '56%'],
+          progress: {
+            show: true,
+            width: 9,
+            roundCap: true,
+            itemStyle: { color: vGradient(BS_SEMANTIC.violet, BS_SEMANTIC.cyan) },
+          },
+          axisLine: { lineStyle: { width: 9, color: [[1, 'rgba(86,148,220,0.14)']] } },
+          axisTick: { show: false },
+          splitLine: { show: false },
+          axisLabel: { show: false },
+          pointer: { show: false },
+          anchor: { show: false },
+          title: {
+            offsetCenter: [0, '34%'],
+            color: '#6d8aac',
+            fontSize: 11,
+          },
+          detail: {
+            valueAnimation: true,
+            offsetCenter: [0, '-2%'],
+            formatter: '{value}%',
+            color: '#f2faff',
+            fontSize: 26,
+            fontWeight: 700,
+            fontFamily: 'DIN Alternate, Bahnschrift, Arial',
+          },
+          data: [{ value: Math.round(stat.bindRate), name: '设备绑定率' }],
         },
-      },
-      legend: {
-        top: 0,
-        right: 0,
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      grid: {
-        left: '8%',
-        right: '5%',
-        bottom: '10%',
-        top: '18%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: onlineTrend.categories,
-        axisLabel: { fontSize: 11, color: '#666' },
-        axisLine: {
-          lineStyle: { color: '#e8e8e8' },
-        },
-      },
-      yAxis: {
-        type: 'value',
-        name: '未绑定数量',
-        nameTextStyle: { fontSize: 11, color: '#999' },
-        axisLabel: { fontSize: 11, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
-      },
-      series: onlineTrend.series.map((s, i) => ({
-        name: s.name,
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: 2, color: LINE_COLORS[i % LINE_COLORS.length] },
-        data: s.data,
-      })),
+      ],
     })
   }
 }
 
+/* ================================================================
+   自适应
+   ================================================================ */
 function resizeCharts() {
-  chartDevice?.resize()
-  chartDeviceRound?.resize()
-  chartDeviceIng?.resize()
-  chartDeviceWarning?.resize()
-  chartDeviceTrouble?.resize()
-  chartDeviceNothing?.resize()
+  chartOnline?.resize()
+  chartStatus?.resize()
+  chartAlert?.resize()
+  chartFault?.resize()
+  chartBind?.resize()
 }
 
-onMounted(() => {
-  loadChartData()
+onMounted(async () => {
+  await loadChartData()
   window.addEventListener('resize', resizeCharts)
 })
 
 onUnmounted(() => {
-  chartDevice?.dispose()
-  chartDeviceRound?.dispose()
-  chartDeviceIng?.dispose()
-  chartDeviceWarning?.dispose()
-  chartDeviceTrouble?.dispose()
-  chartDeviceNothing?.dispose()
+  ;[chartOnline, chartStatus, chartAlert, chartFault, chartBind].forEach((c) => c?.dispose())
   window.removeEventListener('resize', resizeCharts)
 })
 </script>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+.bs-device {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr);
 }
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.common-layout {
-  width: 100vw;
-  height: 100vh;
-  padding: 16px;
-  background-color: #f0f2f5;
-  overflow: hidden;
-}
-
-.full-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.el-header {
-  background-color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  height: 72px;
-  flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.el-main {
-  flex: 1;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* ===== 主布局 ===== */
-.bd {
-  width: 100%;
-  height: 100%;
-  display: flex;
+.device-kpis {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
 }
 
-.left,
-.right {
-  width: 24%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* Gauge 面板在窄列里隐藏标题说明，避免挤压 */
+.bs-panel__tag .el-icon {
+  vertical-align: -2px;
 }
 
-.middle {
-  width: 49%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.top,
-.bottom {
-  flex: 1;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 12px 14px 10px 14px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: box-shadow 0.3s;
-}
-
-.top:hover,
-.bottom:hover {
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
-}
-
-.chart-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #f0f0f0;
-  margin-bottom: 6px;
-  flex-shrink: 0;
-  letter-spacing: 0.5px;
-}
-
-.chart-title::before {
-  content: '';
-  display: inline-block;
-  width: 4px;
-  height: 16px;
-  background: #409eff;
-  border-radius: 2px;
-  margin-right: 8px;
-  vertical-align: middle;
-}
-
-.chart-container {
-  flex: 1;
-  width: 100%;
-  min-height: 260px;
-  height: 260px;
-}
-
-/* ===== 顶部导航 ===== */
-.grid-content {
-  height: 44px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  transition: all 0.3s;
-}
-
-.grid-content:hover {
-  background: #b3d8ff !important;
-}
-
-.ep-bg-purple {
-  background: #e6f7ff;
-  border: 1px solid #91d5ff;
-}
-
-.ep-bg-purple-light {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-}
-
-.row-bg {
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px;
-}
-
-.logo h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #409eff;
-  letter-spacing: 2px;
-}
-
-/* ===== 响应式 ===== */
-@media (max-width: 1200px) {
-  .bd {
-    flex-wrap: wrap;
-    gap: 12px;
+@media (max-width: 1360px) {
+  .device-kpis {
+    gap: 10px;
   }
-  .left,
-  .right {
-    width: 49%;
-  }
-  .middle {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .left,
-  .right {
-    width: 100%;
-  }
-  .middle {
-    width: 100%;
-  }
-  .common-layout {
-    padding: 8px;
-  }
-  .el-header {
-    height: auto;
-    padding: 8px 12px;
-  }
-  .chart-title {
-    font-size: 13px;
-  }
-  .top,
-  .bottom {
-    padding: 8px 10px;
+  .bs-device {
+    gap: 10px;
   }
 }
 </style>

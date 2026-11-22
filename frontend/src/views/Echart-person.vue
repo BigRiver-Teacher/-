@@ -1,133 +1,148 @@
 <template>
-  <div class="common-layout">
-    <el-container class="full-container">
-      <el-header>
-        <el-row class="row-bg" justify="space-evenly" align="middle">
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/person')"
-            >
-              人员管理
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/export')"
-            >
-              专家管理
-            </div>
-          </el-col>
-          <el-col :span="6">
-            <div class="grid-content ep-bg-purple-light">
-              <div class="logo" style="cursor: pointer" @click="router.push('/home')">
-                <el-icon :size="24" color="#409eff"><Management /></el-icon>
-                <h2>朝夕护行 人员管理</h2>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/monitor')"
-            >
-              监控管理
-            </div>
-          </el-col>
-          <el-col :span="3">
-            <div
-              class="grid-content ep-bg-purple"
-              style="cursor: pointer"
-              @click="router.push('/echart/device')"
-            >
-              设备管理
-            </div>
-          </el-col>
-        </el-row>
-      </el-header>
-
-      <el-main>
-        <div class="total">
-          <!-- ===== 左列 ===== -->
-          <div class="left">
-            <div class="card card-top">
-              <div class="card-title">
-                <span class="title-dot"></span>
-                服务人员统计
-              </div>
-              <div id="personAround" class="chart-container"></div>
-            </div>
-            <div class="card card-bottom">
-              <div class="card-title">
-                <span class="title-dot"></span>
-                陪护人员分布
-              </div>
-              <div id="personPosition" class="chart-container"></div>
-            </div>
+  <BigScreenShell active="person">
+    <main class="bs-main bs-person">
+      <!-- ===== KPI ===== -->
+      <div class="person-kpis">
+        <div class="bs-kpi" style="--kpi-color: #38e1ff; --d: 0.04s">
+          <div class="bs-kpi__label"><el-icon><UserFilled /></el-icon>服务人员总数</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="staffTotal" /></span>
+            <span class="bs-kpi__unit">人</span>
           </div>
+          <el-icon class="bs-kpi__wm"><UserFilled /></el-icon>
+        </div>
 
-          <!-- ===== 中列 ===== -->
-          <div class="middle">
-            <div class="card card-stat">
-              <div class="stats-label">在职员工总数</div>
-              <div class="stats-number">
-                <span class="number">680</span>
-                <span class="number-unit">人</span>
-              </div>
-              <div class="stats-sub">较上月 <span class="up">↑ 3.2%</span></div>
-            </div>
-            <div class="card card-chart">
-              <div class="card-title">
-                <span class="title-dot"></span>
-                人员占比
-              </div>
-              <div id="personPercent" class="chart-container"></div>
-            </div>
+        <div class="bs-kpi" style="--kpi-color: #22d3a7; --d: 0.08s">
+          <div class="bs-kpi__label"><el-icon><User /></el-icon>服务对象总数</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="elderTotal" /></span>
+            <span class="bs-kpi__unit">人</span>
           </div>
+          <el-icon class="bs-kpi__wm"><User /></el-icon>
+        </div>
 
-          <!-- ===== 右列 ===== -->
-          <div class="right">
-            <div class="card card-stat-mini">
-              <div class="stat-mini-label">服务对象总数</div>
-              <div class="stat-mini-number">
-                <span class="mini-number">1080</span>
-                <span class="mini-unit">人</span>
+        <div class="bs-kpi" style="--kpi-color: #8b5cf6; --d: 0.12s">
+          <div class="bs-kpi__label"><el-icon><Suitcase /></el-icon>岗位类别</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value"><CountUp :value="jobCount" /></span>
+            <span class="bs-kpi__unit">类</span>
+          </div>
+          <el-icon class="bs-kpi__wm"><Suitcase /></el-icon>
+        </div>
+
+        <div class="bs-kpi" style="--kpi-color: #f5a524; --d: 0.16s">
+          <div class="bs-kpi__label"><el-icon><PieChart /></el-icon>服务对象男女比</div>
+          <div class="bs-kpi__row">
+            <span class="bs-kpi__value">{{ genderRatio }}</span>
+          </div>
+          <el-icon class="bs-kpi__wm"><PieChart /></el-icon>
+        </div>
+      </div>
+
+      <!-- ===== 人员构成 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.1s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">人员构成</span>
+          <span class="bs-panel__tag">在册 <b>{{ staffTotal }}</b> 人</span>
+        </header>
+        <div class="bs-panel__body">
+          <div class="bs-donut">
+            <div class="bs-donut__chart">
+              <div id="personRatio" class="bs-chart"></div>
+              <div class="bs-donut__center">
+                <b>{{ staffTotal }}</b>
+                <span>服务人员</span>
               </div>
             </div>
-            <div class="card card-chart">
-              <div class="card-title">
-                <span class="title-dot"></span>
-                服务对象年龄分布
-              </div>
-              <div id="personAge" class="chart-container"></div>
-            </div>
-            <div class="card card-bottom">
-              <div class="card-title">
-                <span class="title-dot"></span>
-                性别分布
-              </div>
-              <div id="personSex" class="chart-container-right"></div>
-              <div class="detail-btn" @click="router.push('/home/elder/base')">
-                <span>跳转详情页</span>
-                <el-icon><ArrowRight /></el-icon>
-              </div>
-            </div>
+            <ul class="bs-legend">
+              <li v-for="(item, i) in ratioData" :key="item.name">
+                <i :style="{ '--c': colorAt(i) }"></i>
+                <span>{{ item.name }}</span>
+                <b>{{ item.value }}</b>
+                <em>{{ percentOf(item.value, staffTotal) }}%</em>
+              </li>
+            </ul>
           </div>
         </div>
-      </el-main>
-    </el-container>
-  </div>
+      </section>
+
+      <!-- ===== 岗位分布 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.14s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">各岗位人员分布</span>
+          <span class="bs-panel__tag"
+            >共 <b>{{ jobCount }}</b> 类岗位</span
+          >
+        </header>
+        <div class="bs-panel__body">
+          <div id="personJob" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 陪护能力雷达 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.18s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">陪护人员岗位覆盖</span>
+          <span class="bs-panel__tag">按岗位归一化</span>
+        </header>
+        <div class="bs-panel__body">
+          <div id="personRadar" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 年龄分布 ===== -->
+      <section class="bs-panel" style="grid-column: span 4; --d: 0.22s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">服务对象年龄分布</span>
+          <span class="bs-panel__tag"
+            >合计 <b>{{ elderTotal }}</b> 人 · 60 岁以上占比
+            <b>{{ agedPercent }}%</b></span
+          >
+        </header>
+        <div class="bs-panel__body">
+          <div id="personAge" class="bs-chart"></div>
+        </div>
+      </section>
+
+      <!-- ===== 性别构成 ===== -->
+      <section class="bs-panel" style="grid-column: span 2; --d: 0.26s">
+        <header class="bs-panel__head">
+          <span class="bs-panel__title">服务对象性别构成</span>
+          <span
+            class="bs-panel__tag"
+            style="cursor: pointer"
+            @click="router.push('/home/elder/base')"
+            >档案 <el-icon><ArrowRight /></el-icon
+          ></span>
+        </header>
+        <div class="bs-panel__body gender-body">
+          <div id="personGender" class="bs-chart"></div>
+          <ul class="gender-legend">
+            <li>
+              <i style="--c: #4f8cff"></i>
+              <span>男</span>
+              <b>{{ maleCount }}</b>
+              <em>{{ malePercent }}%</em>
+            </li>
+            <li>
+              <i style="--c: #ff5c7c"></i>
+              <span>女</span>
+              <b>{{ femaleCount }}</b>
+              <em>{{ 100 - malePercent }}%</em>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+  </BigScreenShell>
 </template>
 
 <script setup lang="ts">
-import { Management, ArrowRight } from '@element-plus/icons-vue'
-import { onMounted, onUnmounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { computed, nextTick, onMounted, onUnmounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import * as echarts from 'echarts'
+import BigScreenShell from '@/components/BigScreenShell.vue'
+import CountUp from '@/components/CountUp.vue'
 import {
   getPersonTrend,
   getPersonRatio,
@@ -135,731 +150,465 @@ import {
   getAgeDistribution,
   getCaregiverDistribution,
 } from '@/api/stats'
+import {
+  BS_COLORS,
+  areaGradient,
+  bsAnimation,
+  bsAxis,
+  bsEmpty,
+  bsTooltip,
+  hexA,
+  hGradient,
+  vGradient,
+} from '@/utils/echartsTheme'
 
 const router = useRouter()
 
-// ===== 图表数据（后端统计接口填充） =====
-let personRatio = []
-let personTrend = { categories: [], series: [] }
-let caregiverDist = { indicator: [], series: [] }
-let ageDist = []
-let genderDist = []
+/** 女性对比色，与全局语义色一致 */
+const GENDER_FEMALE = '#ff5c7c'
 
-// ===== 从后端加载图表数据 =====
+/* ================================================================
+   数据
+   ================================================================ */
+const ratioData = reactive<Array<{ name: string; value: number }>>([])
+const jobData = reactive<{ names: string[]; values: number[] }>({ names: [], values: [] })
+const radarData = reactive<{ indicators: Array<{ name: string; max: number }>; value: number[] }>({
+  indicators: [],
+  value: [],
+})
+const ageData = reactive<Array<{ name: string; value: number }>>([])
+const genderData = reactive<Array<{ name: string; value: number }>>([])
+
+const colorAt = (i: number) => BS_COLORS[i % BS_COLORS.length]
+const percentOf = (v: number, total: number) => (total ? Math.round((v / total) * 100) : 0)
+
+const staffTotal = computed(() => ratioData.reduce((a, b) => a + (b.value || 0), 0))
+const elderTotal = computed(() => genderData.reduce((a, b) => a + (b.value || 0), 0))
+const jobCount = computed(() => jobData.names.length)
+const agedPercent = computed(() => {
+  const aged = ageData.reduce((a, b) => a + (b.value || 0), 0)
+  return elderTotal.value ? Math.round((aged / elderTotal.value) * 100) : 0
+})
+const maleCount = computed(() => genderData.find((g) => g.name.includes('男'))?.value ?? 0)
+const femaleCount = computed(() => genderData.find((g) => g.name.includes('女'))?.value ?? 0)
+const malePercent = computed(() =>
+  elderTotal.value ? Math.round((maleCount.value / elderTotal.value) * 100) : 0,
+)
+const genderRatio = computed(() => {
+  const male = genderData.find((g) => g.name.includes('男'))?.value ?? 0
+  const female = genderData.find((g) => g.name.includes('女'))?.value ?? 0
+  if (!male && !female) return '—'
+  return `${male} : ${female}`
+})
+
+/* ================================================================
+   加载
+   ================================================================ */
 async function loadChartData() {
   try {
     const res = await getPersonRatio()
-    personRatio = res.data.data || []
-  } catch (e) {}
+    ratioData.splice(0, ratioData.length, ...(res.data.data || []))
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getPersonTrend()
-    personTrend = res.data.data || { categories: [], series: [] }
-  } catch (e) {}
+    const d = res.data.data
+    if (d) {
+      // 后端按岗位统计人数，这里按人数倒序，横向条形更直观
+      const pairs = (d.categories || []).map((c: string, i: number) => ({
+        name: c,
+        value: d.series?.[0]?.data?.[i] ?? 0,
+      }))
+      pairs.sort((a, b) => a.value - b.value)
+      jobData.names = pairs.map((p) => p.name)
+      jobData.values = pairs.map((p) => p.value)
+    }
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getCaregiverDistribution()
-    caregiverDist = res.data.data || { indicator: [], series: [] }
-  } catch (e) {}
+    const d = res.data.data
+    if (d) {
+      // 后端 indicator 的 max 固定为 100，实际人数只有个位数，
+      // 直接用会把雷达图缩成一点，这里按当前数据峰值重算刻度上限
+      const values_: number[] = d.series?.[0]?.value || []
+      const peak = values_.length ? Math.max(...values_) : 0
+      const max = Math.max(1, Math.ceil(peak * 1.2))
+      radarData.indicators = (d.indicator || []).map((i: { name: string }) => ({ name: i.name, max }))
+      radarData.value = values_
+    }
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getAgeDistribution()
-    ageDist = res.data.data || []
-  } catch (e) {}
+    ageData.splice(0, ageData.length, ...(res.data.data || []))
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await getGenderDistribution()
-    genderDist = res.data.data || []
-  } catch (e) {}
-  nextTick(() => initChart())
+    genderData.splice(0, genderData.length, ...(res.data.data || []))
+  } catch {
+    /* ignore */
+  }
+  nextTick(() => initCharts())
 }
 
-let chartPersonPercent = null
-let chartPersonAround = null
-let chartPersonPosition = null
-let chartPersonAge = null
-let chartPersonSex = null
+/* ================================================================
+   图表
+   ================================================================ */
+let chartRatio: echarts.ECharts | null = null
+let chartJob: echarts.ECharts | null = null
+let chartRadar: echarts.ECharts | null = null
+let chartAge: echarts.ECharts | null = null
+let chartGender: echarts.ECharts | null = null
 
-function initChart() {
-  // 销毁旧实例
-  const charts = [
-    chartPersonPercent,
-    chartPersonAround,
-    chartPersonPosition,
-    chartPersonAge,
-    chartPersonSex,
-  ]
-  charts.forEach((chart) => {
-    if (chart) {
-      chart.dispose()
-      chart = null
-    }
-  })
+function initCharts() {
+  ;[chartRatio, chartJob, chartRadar, chartAge, chartGender].forEach((c) => c?.dispose())
+  chartRatio = chartJob = chartRadar = chartAge = chartGender = null
 
-  // ===== 1. 人员占比（饼图） =====
-  const personPercent = document.getElementById('personPercent')
-  if (personPercent) {
-    chartPersonPercent = echarts.init(personPercent)
-    chartPersonPercent.setOption({
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c} ({d}%)',
-      },
-      legend: {
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      color: ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399'],
+  /* 1. 人员构成 —— 环形 */
+  const ratioEl = document.getElementById('personRatio')
+  if (ratioEl) {
+    chartRatio = echarts.init(ratioEl)
+    chartRatio.setOption({
+      ...bsAnimation,
+      tooltip: bsTooltip({ trigger: 'item', formatter: '{b}：{c} 人（{d}%）' }),
       series: [
         {
-          name: '人员占比',
+          name: '人员构成',
           type: 'pie',
-          radius: ['40%', '72%'],
-          center: ['45%', '55%'],
-          avoidLabelOverlap: false,
-          label: {
-            show: true,
-            formatter: '{d}%',
-            fontSize: 11,
-            color: '#666',
-          },
-          labelLine: {
-            length: 10,
-            length2: 6,
+          radius: ['58%', '82%'],
+          center: ['50%', '50%'],
+          padAngle: 3,
+          label: { show: false },
+          labelLine: { show: false },
+          itemStyle: {
+            borderColor: 'rgba(6,14,28,0.92)',
+            borderWidth: 2,
+            borderRadius: 5,
           },
           emphasis: {
-            label: {
-              show: true,
-              fontSize: 16,
-              fontWeight: 'bold',
-            },
             scale: true,
-            scaleSize: 6,
+            scaleSize: 8,
+            itemStyle: { shadowBlur: 22, shadowColor: 'rgba(56,225,255,0.5)' },
           },
-          data: personRatio,
-        },
-      ],
-    })
-  }
-
-  // ===== 2. 服务人员统计（横向柱状图） =====
-  const personAround = document.getElementById('personAround')
-  if (personAround) {
-    chartPersonAround = echarts.init(personAround)
-    chartPersonAround.setOption({
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: { type: 'shadow' },
-        formatter: function (params) {
-          let html = `<strong>${params[0].name}</strong><br/>`
-          params.forEach((p) => {
-            html += `${p.marker} ${p.seriesName}：${p.value} 人<br/>`
-          })
-          return html
-        },
-      },
-      legend: {
-        top: 0,
-        right: 0,
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      grid: {
-        left: '10%',
-        right: '5%',
-        bottom: '5%',
-        top: '15%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'value',
-        name: '人数',
-        nameTextStyle: { fontSize: 11, color: '#999' },
-        axisLabel: { fontSize: 11, color: '#666' },
-        splitLine: {
-          lineStyle: { color: '#f0f0f0', type: 'dashed' },
-        },
-      },
-      yAxis: {
-        type: 'category',
-        data: personTrend.categories,
-        axisLabel: { fontSize: 12, color: '#666' },
-        axisLine: { lineStyle: { color: '#e8e8e8' } },
-      },
-      series: personTrend.series.map((s, i) => ({
-        name: s.name,
-        type: 'bar',
-        stack: 'total',
-        data: s.data,
-        itemStyle: {
-          borderRadius: i === personTrend.series.length - 1 ? [0, 4, 4, 0] : 0,
-          color: new echarts.graphic.LinearGradient(
-            0,
-            0,
-            1,
-            0,
-            i % 2 === 0
-              ? [
-                  { offset: 0, color: '#a8d8ff' },
-                  { offset: 1, color: '#409eff' },
-                ]
-              : [
-                  { offset: 0, color: '#79bbff' },
-                  { offset: 1, color: '#337ecc' },
-                ],
-          ),
-        },
-      })),
-    })
-  }
-
-  // ===== 3. 陪护人员分布（雷达图） =====
-  const personPosition = document.getElementById('personPosition')
-  if (personPosition) {
-    chartPersonPosition = echarts.init(personPosition)
-    // 后端 indicator 的 max 固定为 100，而实际人数只有 1~2 人，直接用会把图形缩成一个点；
-    // 这里按当前数据最大值动态计算雷达刻度上限。
-    const radarValues: number[] =
-      ((caregiverDist.series?.[0]?.value as number[] | undefined) || [])
-    const radarPeak = radarValues.length > 0 ? Math.max(...radarValues) : 0
-    const radarMax = Math.max(1, Math.ceil(radarPeak * 1.2))
-    const radarIndicator = (caregiverDist.indicator || []).map((ind: any) => ({
-      name: ind.name,
-      max: radarMax,
-    }))
-    chartPersonPosition.setOption({
-      tooltip: {
-        trigger: 'item',
-        formatter: function (params: { name: any; value: any[] }) {
-          let html = `<strong>${params.name}</strong><br/>`
-          const labels = caregiverDist.indicator.map((ind) => ind.name)
-          params.value.forEach((v: any, i: number) => {
-            html += `${labels[i] || '维度' + (i + 1)}：${v} 人<br/>`
-          })
-          return html
-        },
-      },
-      legend: {
-        data: caregiverDist.series.map((s) => s.name),
-        top: 0,
-        right: 0,
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 11,
-        itemHeight: 12,
-      },
-      radar: {
-        indicator: radarIndicator,
-        shape: 'circle',
-        center: ['45%', '55%'],
-        radius: '72%',
-        axisName: {
-          color: '#666',
-          fontSize: 11,
-        },
-        splitArea: {
-          areaStyle: {
-            color: ['rgba(64,158,255,0.02)', 'rgba(64,158,255,0.02)'],
-          },
-        },
-        axisLine: {
-          lineStyle: {
-            color: 'rgba(64,158,255,0.2)',
-          },
-        },
-      },
-      series: [
-        {
-          name: '陪护人员分布',
-          type: 'radar',
-          data: caregiverDist.series.map((s, i) => ({
-            value: s.value,
-            name: s.name,
-            areaStyle: {
-              color: i % 2 === 0 ? 'rgba(64,158,255,0.2)' : 'rgba(103,194,58,0.2)',
-            },
-            lineStyle: {
-              color: i % 2 === 0 ? '#409eff' : '#67c23a',
-              width: 2,
-            },
-            itemStyle: {
-              color: i % 2 === 0 ? '#409eff' : '#67c23a',
-            },
+          data: ratioData.map((d, i) => ({
+            name: d.name,
+            value: d.value,
+            itemStyle: { color: colorAt(i) },
           })),
         },
       ],
     })
   }
 
-  // ===== 4. 服务对象年龄分布（饼图） =====
-  const personAge = document.getElementById('personAge')
-  if (personAge) {
-    chartPersonAge = echarts.init(personAge)
-    chartPersonAge.setOption({
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c}人 ({d}%)',
+  /* 2. 各岗位人员分布 —— 横向条形 */
+  const jobEl = document.getElementById('personJob')
+  if (jobEl) {
+    chartJob = echarts.init(jobEl)
+    chartJob.setOption({
+      ...bsAnimation,
+      ...bsEmpty(jobData.values.length),
+      tooltip: bsTooltip({
+        trigger: 'axis',
+        axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(56,225,255,0.06)' } },
+        valueFormatter: (v: number) => `${v} 人`,
+      }),
+      grid: { top: 6, left: 4, right: 44, bottom: 2, containLabel: true },
+      xAxis: {
+        type: 'value',
+        minInterval: 1,
+        ...bsAxis,
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: 'rgba(120,170,230,0.08)', type: 'dashed' } },
       },
-      legend: {
-        orient: 'vertical',
-        right: '5%',
-        top: 'center',
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
+      yAxis: {
+        type: 'category',
+        data: jobData.names,
+        ...bsAxis,
+        axisLine: { show: false },
+        axisLabel: { color: '#9db8d6', fontSize: 11.5 },
       },
-      color: ['#f56c6c', '#e6a23c', '#409eff', '#67c23a', '#909399'],
       series: [
         {
-          name: '年龄分布',
-          type: 'pie',
-          radius: ['35%', '65%'],
-          center: ['45%', '55%'],
+          name: '人数',
+          type: 'bar',
+          barWidth: 11,
+          data: jobData.values,
           label: {
             show: true,
-            formatter: '{d}%',
-            fontSize: 11,
-            color: '#666',
-          },
-          labelLine: {
-            length: 10,
-            length2: 6,
-          },
-          emphasis: {
-            scale: true,
-            scaleSize: 6,
-          },
-          data: ageDist,
-        },
-      ],
-    })
-  }
-
-  // ===== 5. 性别分布（半圆饼图） =====
-  const personSex = document.getElementById('personSex')
-  if (personSex) {
-    chartPersonSex = echarts.init(personSex)
-    chartPersonSex.setOption({
-      tooltip: {
-        trigger: 'item',
-        formatter: '{b}: {c}人 ({d}%)',
-      },
-      legend: {
-        top: '5%',
-        left: 'center',
-        textStyle: { fontSize: 11, color: '#666' },
-        itemWidth: 12,
-        itemHeight: 12,
-      },
-      color: ['#409eff', '#f56c6c'],
-      series: [
-        {
-          name: '性别分布',
-          type: 'pie',
-          radius: ['40%', '70%'],
-          center: ['50%', '70%'],
-          startAngle: 180,
-          endAngle: 360,
-          label: {
-            show: true,
-            formatter: '{d}%',
+            position: 'right',
+            distance: 8,
+            formatter: '{c}',
+            color: '#eaf7ff',
             fontSize: 12,
-            color: '#666',
+            fontWeight: 700,
           },
-          labelLine: {
-            length: 10,
-            length2: 6,
+          itemStyle: {
+            borderRadius: [0, 6, 6, 0],
+            color: hGradient(hexA(BS_COLORS[0], 0.45), BS_COLORS[0]),
           },
-          emphasis: {
-            scale: true,
-            scaleSize: 6,
+          showBackground: true,
+          backgroundStyle: { color: 'rgba(86,148,220,0.05)', borderRadius: [0, 6, 6, 0] },
+          emphasis: { itemStyle: { shadowBlur: 16, shadowColor: hexA(BS_COLORS[0], 0.8) } },
+        },
+      ],
+    })
+  }
+
+  /* 3. 陪护岗位覆盖 —— 雷达 */
+  const radarEl = document.getElementById('personRadar')
+  if (radarEl) {
+    chartRadar = echarts.init(radarEl)
+    chartRadar.setOption({
+      ...bsAnimation,
+      ...bsEmpty(radarData.value.length),
+      tooltip: bsTooltip({ trigger: 'item' }),
+      radar: {
+        center: ['50%', '54%'],
+        radius: '70%',
+        shape: 'polygon',
+        indicator: radarData.indicators,
+        splitNumber: 3,
+        axisName: { color: '#8ba8ca', fontSize: 10.5 },
+        splitLine: { lineStyle: { color: 'rgba(86,148,220,0.18)' } },
+        splitArea: {
+          areaStyle: {
+            color: ['rgba(56,225,255,0.03)', 'rgba(56,225,255,0.06)'],
           },
-          data: genderDist,
+        },
+        axisLine: { lineStyle: { color: 'rgba(86,148,220,0.2)' } },
+      },
+      series: [
+        {
+          type: 'radar',
+          symbolSize: 5,
+          data: [
+            {
+              value: radarData.value,
+              name: '当前水平',
+              areaStyle: { color: areaGradient(BS_COLORS[0], 0.5, 0.08) },
+              lineStyle: { color: BS_COLORS[0], width: 2 },
+              itemStyle: { color: BS_COLORS[0], shadowBlur: 10, shadowColor: BS_COLORS[0] },
+            },
+          ],
+        },
+      ],
+    })
+  }
+
+  /* 4. 年龄分布 —— 柱状 */
+  const ageEl = document.getElementById('personAge')
+  if (ageEl) {
+    chartAge = echarts.init(ageEl)
+    const peak = ageData.length ? Math.max(...ageData.map((d) => d.value)) : 0
+    chartAge.setOption({
+      ...bsAnimation,
+      ...bsEmpty(ageData.length),
+      tooltip: bsTooltip({
+        trigger: 'axis',
+        axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(56,225,255,0.06)' } },
+        valueFormatter: (v: number) => `${v} 人`,
+      }),
+      grid: { top: 30, left: 6, right: 16, bottom: 4, containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: ageData.map((d) => d.name),
+        ...bsAxis,
+        splitLine: { show: false },
+        axisLabel: { color: '#9db8d6', fontSize: 11 },
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        ...bsAxis,
+        splitLine: { lineStyle: { color: 'rgba(120,170,230,0.08)', type: 'dashed' } },
+      },
+      series: [
+        {
+          name: '人数',
+          type: 'bar',
+          barWidth: '42%',
+          data: ageData.map((d) => d.value),
+          label: {
+            show: true,
+            position: 'top',
+            distance: 8,
+            formatter: '{c}',
+            color: '#cfe6ff',
+            fontSize: 12,
+            fontWeight: 700,
+          },
+          itemStyle: {
+            borderRadius: [6, 6, 0, 0],
+            color: (p: any) =>
+              p.value >= peak && peak > 0
+                ? vGradient(BS_COLORS[0], hexA(BS_COLORS[1], 0.15))
+                : vGradient(hexA(BS_COLORS[1], 0.8), hexA(BS_COLORS[1], 0.1)),
+          },
+          emphasis: { itemStyle: { shadowBlur: 18, shadowColor: hexA(BS_COLORS[0], 0.6) } },
+        },
+      ],
+    })
+  }
+
+  /* 5. 性别构成 —— 半环 */
+  const genderEl = document.getElementById('personGender')
+  if (genderEl) {
+    chartGender = echarts.init(genderEl)
+    const total = genderData.reduce((a, b) => a + b.value, 0) || 1
+    chartGender.setOption({
+      ...bsAnimation,
+      ...bsEmpty(genderData.length),
+      tooltip: bsTooltip({ trigger: 'item', formatter: '{b}：{c} 人（{d}%）' }),
+      series: [
+        {
+          name: '性别构成',
+          type: 'pie',
+          radius: ['64%', '92%'],
+          center: ['50%', '82%'],
+          startAngle: 180,
+          endAngle: 0,
+          padAngle: 2,
+          label: {
+            show: true,
+            position: 'inside',
+            formatter: '{d}%',
+            color: '#04121f',
+            fontSize: 12,
+            fontWeight: 700,
+          },
+          labelLine: { show: false },
+          itemStyle: { borderColor: 'rgba(6,14,28,0.6)', borderWidth: 1, borderRadius: 4 },
+          emphasis: { scale: true, scaleSize: 5 },
+          data: genderData.map((d, i) => ({
+            name: d.name,
+            value: d.value,
+            itemStyle: { color: i === 0 ? '#4f8cff' : '#ff5c7c' },
+          })),
+        },
+      ],
+      graphic: [
+        {
+          type: 'text',
+          left: 'center',
+          top: '56%',
+          style: {
+            text: String(total),
+            fill: '#f2faff',
+            fontSize: 24,
+            fontWeight: 700,
+            fontFamily: 'DIN Alternate, Bahnschrift, Arial',
+          },
+        },
+        {
+          type: 'text',
+          left: 'center',
+          top: '72%',
+          style: { text: '服务对象', fill: '#6d8aac', fontSize: 10.5 },
         },
       ],
     })
   }
 }
 
+/* ================================================================
+   自适应
+   ================================================================ */
 function resizeCharts() {
-  chartPersonPercent?.resize()
-  chartPersonAround?.resize()
-  chartPersonPosition?.resize()
-  chartPersonAge?.resize()
-  chartPersonSex?.resize()
+  chartRatio?.resize()
+  chartJob?.resize()
+  chartRadar?.resize()
+  chartAge?.resize()
+  chartGender?.resize()
 }
 
-onMounted(() => {
-  loadChartData()
+onMounted(async () => {
+  await loadChartData()
   window.addEventListener('resize', resizeCharts)
 })
 
 onUnmounted(() => {
-  chartPersonPercent?.dispose()
-  chartPersonAround?.dispose()
-  chartPersonPosition?.dispose()
-  chartPersonAge?.dispose()
-  chartPersonSex?.dispose()
+  ;[chartRatio, chartJob, chartRadar, chartAge, chartGender].forEach((c) => c?.dispose())
   window.removeEventListener('resize', resizeCharts)
 })
 </script>
 
 <style scoped>
-* {
+.bs-person {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1.05fr);
+}
+
+.person-kpis {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* ===== 性别构成 ===== */
+.gender-body {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gender-body > .bs-chart {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.gender-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  flex-shrink: 0;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  padding: 0 0 2px;
+  list-style: none;
 }
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.common-layout {
-  width: 100vw;
-  height: 100vh;
-  padding: 16px;
-  background: linear-gradient(135deg, #e8edf5 0%, #d5dce6 100%);
-  overflow: hidden;
-}
-
-.full-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.el-header {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  padding: 12px 20px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  height: 72px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.el-main {
-  flex: 1;
-  padding: 0;
-  overflow: hidden;
-}
-
-/* ===== 主布局 ===== */
-.total {
-  display: flex;
-  gap: 14px;
-  width: 100%;
-  height: 100%;
-}
-
-.left,
-.right {
-  width: 24%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.middle {
-  width: 50%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* ===== 卡片样式 ===== */
-.card {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(10px);
-  border-radius: 14px;
-  padding: 14px 18px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.3s ease;
-}
-
-.card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.left .card-top,
-.left .card-bottom {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.middle .card-stat {
-  height: 22%;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.middle .card-chart {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.right .card-stat-mini {
-  height: 18%;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.gender-legend li {
+  display: inline-flex;
   align-items: center;
-}
-
-.right .card-chart {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.right .card-bottom {
-  height: 28%;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-container {
-  flex: 1;
-  width: 100%;
-  min-height: 220px;
-  height: 220px;
-}
-.chart-container-right {
-  flex: 1;
-  width: 100%;
-  /* min-height: 260px; */
-  height: 220px;
-}
-
-/* ===== 卡片标题 ===== */
-.card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid #f0f0f0;
-  margin-bottom: 6px;
-  flex-shrink: 0;
-}
-
-.title-dot {
-  display: inline-block;
-  width: 4px;
-  height: 16px;
-  background: linear-gradient(180deg, #409eff, #79bbff);
-  border-radius: 2px;
-}
-
-/* ===== 统计数字样式 ===== */
-.stats-label {
-  font-size: 13px;
-  color: #999;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-}
-
-.stats-number {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin: 2px 0;
-}
-
-.number {
-  font-size: 42px;
-  font-weight: 700;
-  color: #1a1a1a;
-  font-family: 'DIN Alternate', 'Arial', sans-serif;
-  letter-spacing: 1px;
-  line-height: 1.1;
-  background: linear-gradient(135deg, #1a1a1a 60%, #409eff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.number-unit {
-  font-size: 18px;
-  color: #999;
-  font-weight: 400;
-}
-
-.stats-sub {
-  font-size: 13px;
-  color: #999;
-}
-
-.stats-sub .up {
-  color: #67c23a;
-  font-weight: 600;
-}
-
-.stats-sub .down {
-  color: #f56c6c;
-  font-weight: 600;
-}
-
-/* ===== 小统计卡片 ===== */
-.stat-mini-label {
-  font-size: 13px;
-  color: #999;
-  font-weight: 500;
-}
-
-.stat-mini-number {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.mini-number {
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a1a1a;
-  font-family: 'DIN Alternate', 'Arial', sans-serif;
-}
-
-.mini-unit {
-  font-size: 16px;
-  color: #999;
-}
-
-/* ===== 跳转按钮 ===== */
-.detail-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   gap: 6px;
-  height: 28%;
-  margin-top: 4px;
-  background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
-  border-radius: 8px;
-  cursor: pointer;
-  color: #fff;
+  font-size: 12px;
+  color: var(--bs-sub);
+}
+
+.gender-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--c);
+  box-shadow: 0 0 8px var(--c);
+}
+
+.gender-legend b {
+  font-family: 'DIN Alternate', 'Bahnschrift', 'Arial Narrow', Arial, sans-serif;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(64, 158, 255, 0.3);
+  color: #eaf7ff;
+  font-variant-numeric: tabular-nums;
 }
 
-.detail-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
+.gender-legend em {
+  font-style: normal;
+  font-size: 11px;
+  color: #7d97b4;
 }
 
-.detail-btn span {
-  letter-spacing: 1px;
-}
-
-.detail-btn .el-icon {
-  font-size: 16px;
-}
-
-/* ===== 顶部导航 ===== */
-.grid-content {
-  height: 44px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  transition: all 0.3s ease;
-}
-
-.grid-content:hover {
-  background: #b3d8ff !important;
-  transform: scale(1.02);
-}
-
-.ep-bg-purple {
-  background: #e6f7ff;
-  border: 1px solid #91d5ff;
-}
-
-.ep-bg-purple-light {
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-}
-
-.row-bg {
-  height: 100%;
-  display: flex;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 20px;
-}
-
-.logo h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  background: linear-gradient(135deg, #409eff, #1a5a9c);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: 2px;
-}
-
-/* ===== 响应式 ===== */
-@media (max-width: 1200px) {
-  .total {
-    flex-wrap: wrap;
+@media (max-width: 1360px) {
+  .person-kpis,
+  .bs-person {
+    gap: 10px;
   }
-  .left,
-  .right {
-    width: 49%;
-  }
-  .middle {
-    width: 100%;
-  }
-}
-
-@media (max-width: 768px) {
-  .left,
-  .right {
-    width: 100%;
-  }
-  .middle {
-    width: 100%;
-  }
-  .common-layout {
-    padding: 8px;
-  }
-  .el-header {
-    height: auto;
-    padding: 8px 12px;
-  }
-  .number {
-    font-size: 32px;
-  }
-  .mini-number {
-    font-size: 24px;
+  .bs-kpi__value {
+    font-size: 22px;
   }
 }
 </style>

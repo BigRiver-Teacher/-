@@ -11,7 +11,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    BigScreenShell: typeof import('./src/components/BigScreenShell.vue')['default']
     ChatPanel: typeof import('./src/components/ChatPanel.vue')['default']
+    CountUp: typeof import('./src/components/CountUp.vue')['default']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElBreadcrumb: typeof import('element-plus/es')['ElBreadcrumb']
