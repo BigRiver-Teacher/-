@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 import threading
+import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -88,6 +89,12 @@ class FallDetectionService:
         self.tracker_config = tracker_config
         self.upload_dir = Path(upload_dir)
         self.output_dir = Path(output_dir)
+        # 标注视频保留天数：超过即清理（<=0 表示不清理），默认 3 天
+        try:
+            self.output_retention_days = int(os.getenv("FALL_OUTPUT_RETENTION_DAYS", "3") or 3)
+        except ValueError:
+            logger.warning("FALL_OUTPUT_RETENTION_DAYS 非法，回退为 3 天")
+            self.output_retention_days = 3
 
         # 模型对象（延迟加载）
         self._pipeline: Any = None
@@ -191,6 +198,31 @@ class FallDetectionService:
                 os.chdir(old_cwd)
             self._pipeline = pipeline
             logger.info("摔倒检测模型加载完成")
+            self.cleanup_old_outputs()
+
+    def cleanup_old_outputs(self) -> int:
+        """清理超过保留期的标注视频，返回删除数量。
+
+        标注视频只增不删会让 outputs 无限增长，这里按文件的修改时间做保留期清理。
+        单次检测前与模型加载后各触发一次，成本是一次目录扫描。
+        """
+        days = self.output_retention_days
+        if days <= 0 or not self.output_dir.exists():
+            return 0
+        cutoff = time.time() - days * 86400
+        removed = 0
+        for path in self.output_dir.iterdir():
+            if not path.is_file():
+                continue
+            try:
+                if path.stat().st_mtime < cutoff:
+                    path.unlink()
+                    removed += 1
+            except OSError:
+                logger.warning("清理标注视频失败，跳过: %s", path)
+        if removed:
+            logger.info("已清理 %d 个超过 %d 天的标注视频", removed, days)
+        return removed
 
     @property
     def is_loaded(self) -> bool:
@@ -241,6 +273,8 @@ class FallDetectionService:
         """
         if self._pipeline is None:
             self.load()
+        # 每次检测前顺带清理过期输出，避免 outputs 无限增长
+        self.cleanup_old_outputs()
         with self._inference_lock:
             # 阶段3：按请求覆盖参数，推理结束后恢复默认值；锁内执行避免并发串扰。
             old_conf = self.confidence_threshold
@@ -317,6 +351,13 @@ class FallDetectionService:
                 self._tasks[task_id]["error"] = str(exc)
             finally:
                 self._tasks[task_id]["finished_at"] = datetime.now().isoformat()
+                # 异步路径不会像同步接口那样自动删除上传的临时视频，这里补上
+                try:
+                    upload_path = Path(input_path)
+                    if upload_path.exists():
+                        upload_path.unlink()
+                except OSError:
+                    logger.warning("清理临时上传视频失败: %s", input_path)
 
         self._executor.submit(_run)
         return task_id

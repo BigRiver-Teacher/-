@@ -3,6 +3,7 @@
 import json
 import logging
 import signal
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -141,8 +142,12 @@ class FallDetectionPipeline:
         self.detector.reset_tracker()
 
         # Setup signal handler for graceful Ctrl+C
+        # signal 只能在主线程安装：异步检测运行在线程池里，
+        # 硬安装会抛 "signal only works in main thread"，故非主线程时跳过。
+        in_main_thread = threading.current_thread() is threading.main_thread()
         original_handler = signal.getsignal(signal.SIGINT)
-        signal.signal(signal.SIGINT, self._handle_interrupt)
+        if in_main_thread:
+            signal.signal(signal.SIGINT, self._handle_interrupt)
 
         start_time = time.time()
         falls_detected = 0
@@ -370,7 +375,8 @@ class FallDetectionPipeline:
                     writer.__exit__(None, None, None)
 
         finally:
-            signal.signal(signal.SIGINT, original_handler)
+            if in_main_thread:
+                signal.signal(signal.SIGINT, original_handler)
 
         processing_time = time.time() - start_time
 

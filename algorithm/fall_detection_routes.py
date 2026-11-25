@@ -86,15 +86,17 @@ def _fail(code: int, message: str) -> Dict[str, Any]:
 
 
 def _ensure_model() -> None:
-    """确保模型已加载，模型缺失时抛出 500 错误。"""
+    """确保模型已加载，模型缺失时抛出 503 错误。"""
     service = get_service()
     try:
         service.load()
     except FallModelNotFoundError as exc:
-        raise HTTPException(status_code=500, detail="模型文件缺失，请联系管理员") from exc
-    except Exception as exc:  # noqa: BLE001 —— 模型加载失败统一返回 500
+        # 503 Service Unavailable：权重缺失属于“服务当前不可用”，
+        # 与 500（服务内部错误）区分开，便于前端/运维判断。
+        raise HTTPException(status_code=503, detail="模型文件缺失，请联系管理员") from exc
+    except Exception as exc:  # noqa: BLE001 —— 模型加载失败统一返回 503
         logger.exception("模型加载失败")
-        raise HTTPException(status_code=500, detail="模型加载失败，请联系管理员") from exc
+        raise HTTPException(status_code=503, detail="模型加载失败，请联系管理员") from exc
 
 
 def _validate_extension(filename: str) -> None:

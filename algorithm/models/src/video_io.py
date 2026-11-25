@@ -22,6 +22,24 @@ CODEC_MAP = {
 }
 
 
+def _resolve_ffmpeg() -> str | None:
+    """Locate an ffmpeg binary: system PATH first, then the imageio-ffmpeg bundle.
+
+    OpenCV writes mp4v (MPEG-4 Part 2) which browsers cannot decode, so the
+    output has to be re-encoded to H.264. Requiring ffmpeg on PATH is fragile on
+    Windows; imageio-ffmpeg ships a static build, giving a zero-install fallback.
+    """
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:  # noqa: BLE001 —— 缺少可选依赖时静默回退
+        return None
+
+
 @dataclass
 class VideoMetadata:
     """Metadata extracted from a video file."""
@@ -174,7 +192,8 @@ class VideoWriter:
 
     def _convert_to_h264(self):
         """Convert output video to H.264 codec using ffmpeg for browser compatibility."""
-        if not shutil.which("ffmpeg"):
+        ffmpeg_exe = _resolve_ffmpeg()
+        if not ffmpeg_exe:
             logger.warning("ffmpeg not found, skipping H.264 conversion")
             return
 
@@ -182,7 +201,7 @@ class VideoWriter:
         try:
             subprocess.run(
                 [
-                    "ffmpeg", "-y", "-i", str(self.path),
+                    ffmpeg_exe, "-y", "-i", str(self.path),
                     "-c:v", "libx264", "-preset", "fast", "-crf", "23",
                     "-pix_fmt", "yuv420p", "-an",
                     str(tmp_path),

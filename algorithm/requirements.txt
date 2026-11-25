@@ -13,3 +13,6 @@ torchvision==0.29.2
 tqdm==4.70.1
 # BoT-SORT 跟踪器必需（缺失时 ultralytics 会在推理期尝试联网自动安装）
 lap==0.5.14
+# 标注视频转 H.264 用（浏览器不认 OpenCV 默认的 mp4v）；
+# 提供内置 ffmpeg 二进制，避免依赖系统 PATH 里的 ffmpeg
+imageio-ffmpeg==0.8.1
