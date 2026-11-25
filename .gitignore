@@ -81,3 +81,7 @@ scripts/shots/
 # ===== 说明 =====
 # 1. 权重与 .env 均不纳入版本库：clone 后请按 README 放置权重、复制 .env.example 为 .env。
 # 2. 示例事件 JSON（algorithm/models/output/test_events.json）为小文件，需要随仓库保留。
+
+# ===== 本地开发环境（本机数据库实例与启动脚本，不入库）=====
+.mysql-data/
+.local/
