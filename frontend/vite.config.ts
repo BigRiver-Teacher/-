@@ -12,6 +12,25 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 const REGISTRY_FILE = fileURLToPath(new URL('./src/config/videoRegistry.json', import.meta.url))
 // 项目根目录（仓库根），用于解析 videoRegistry.json 中"相对项目根"的路径
 const PROJECT_ROOT = fileURLToPath(new URL('..', import.meta.url))
+
+/**
+ * 跌倒检测算法服务的 API Key。
+ * 优先读进程环境变量，其次读 algorithm/.env，由代理在服务端注入 X-API-Key，
+ * 避免把密钥打进前端产物（构建后任何人都能看到）。
+ */
+function resolveFallApiKeyHeaders(): Record<string, string> {
+  const fromEnv = process.env.FALL_API_KEY?.trim()
+  if (fromEnv) return { 'X-API-Key': fromEnv }
+  try {
+    const envPath = fileURLToPath(new URL('../algorithm/.env', import.meta.url))
+    if (!existsSync(envPath)) return {}
+    const matched = readFileSync(envPath, 'utf-8').match(/^FALL_API_KEY=(.+)$/m)
+    const key = matched?.[1]?.trim()
+    return key ? { 'X-API-Key': key } : {}
+  } catch {
+    return {}
+  }
+}
 const ABSOLUTE_PATH_RE = /^([a-zA-Z]:[\\/]|\\\\|\/)/
 
 /**
@@ -92,6 +111,13 @@ export default defineConfig({
     },
     // 代理配置：解决跨域问题
     proxy: {
+      // 跌倒检测算法服务（FastAPI，8001）。必须排在 '/api' 之前，
+      // 否则 /api/fall-detection/* 会被下面的 '/api' 规则转发到后端 8080 而 404。
+      '/api/fall-detection': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        headers: resolveFallApiKeyHeaders(),
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -107,6 +133,11 @@ export default defineConfig({
   preview: {
     port: 4173,
     proxy: {
+      '/api/fall-detection': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        headers: resolveFallApiKeyHeaders(),
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

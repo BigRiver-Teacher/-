@@ -22,10 +22,15 @@ import {
   CircleCheck,
   CircleClose,
   Plus,
+  VideoCamera,
 } from '@element-plus/icons-vue'
 import { useAlertStore } from '@/stores/alertStore'
+import FallDetectDialog from '@/views/ai/FallDetectDialog.vue'
 
 const alertStore = useAlertStore()
+
+// ===== AI 视频检测弹窗 =====
+const detectVisible = ref(false)
 
 // ===== 统计数据（直接从 store 获取） =====
 const stats = computed(() => ({
@@ -311,6 +316,10 @@ onUnmounted(() => {
         跌倒预警
       </h2>
       <div class="header-actions">
+        <el-button type="warning" size="default" @click="detectVisible = true">
+          <el-icon><VideoCamera /></el-icon>
+          上传视频检测
+        </el-button>
         <el-button type="success" size="default" @click="addWarning">
           <el-icon><Plus /></el-icon>
           添加预警
@@ -714,6 +723,9 @@ onUnmounted(() => {
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- ===== AI 视频跌倒检测 ===== -->
+    <FallDetectDialog v-model="detectVisible" />
   </div>
 </template>
 

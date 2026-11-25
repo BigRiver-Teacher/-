@@ -59,3 +59,24 @@ export function batchProcessAlerts(ids: number[]) {
 export function batchIgnoreAlerts(ids: number[]) {
   return request.put<Result<string>>('/alert/batch-ignore', { ids })
 }
+
+// ===== 创建告警（供视频检测等能力写入） =====
+export interface AlertCreatePayload {
+  elderName: string
+  elderId?: number
+  /** 默认 FALL */
+  alertType?: string
+  /** urgent / important / normal */
+  level?: string
+  description?: string
+  /** yyyy-MM-ddTHH:mm:ss */
+  alertTime?: string
+  location?: string
+  contactPhone?: string
+  emergencyContact?: string
+  suggestedAction?: string
+}
+
+export function createAlert(data: AlertCreatePayload) {
+  return request.post<Result<number>>('/alert/create', data)
+}
