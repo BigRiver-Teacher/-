@@ -9,6 +9,7 @@ import com.example.elderly.common.AlertHandleStatusEnum;
 import com.example.elderly.dto.alert.AlertBatchDTO;
 import com.example.elderly.dto.alert.AlertProcessDTO;
 import com.example.elderly.dto.alert.AlertQueryDTO;
+import com.example.elderly.dto.alert.AlertCreateDTO;
 import com.example.elderly.entity.Alert;
 import com.example.elderly.mapper.AlertMapper;
 import com.example.elderly.service.AlertService;
@@ -132,5 +133,32 @@ public class AlertServiceImpl extends ServiceImpl<AlertMapper, Alert> implements
             updateById(alert);
         }
         return true;
+    }
+
+    /**
+     * 创建告警。
+     *
+     * 供视频检测等外部能力写入：跌倒属于最高优先级，默认 urgent + pending + 未读；
+     * 前端列表的类型筛选用 'FALL'、级别筛选用 urgent/important/normal，
+     * 因此这里不使用 AlertTypeEnum 里的历史拼写码。
+     */
+    @Override
+    @Transactional
+    public Long createAlert(AlertCreateDTO dto) {
+        Alert alert = new Alert();
+        alert.setElderName(dto.getElderName());
+        alert.setElderId(dto.getElderId());
+        alert.setAlertType(StringUtils.hasText(dto.getAlertType()) ? dto.getAlertType() : "FALL");
+        alert.setLevel(StringUtils.hasText(dto.getLevel()) ? dto.getLevel() : "urgent");
+        alert.setDescription(dto.getDescription());
+        alert.setAlertTime(dto.getAlertTime() != null ? dto.getAlertTime() : LocalDateTime.now());
+        alert.setLocation(dto.getLocation());
+        alert.setContactPhone(dto.getContactPhone());
+        alert.setEmergencyContact(dto.getEmergencyContact());
+        alert.setSuggestedAction(dto.getSuggestedAction());
+        alert.setStatus(AlertHandleStatusEnum.PENDING.getCode());
+        alert.setRead(0);
+        save(alert);
+        return alert.getId();
     }
 }

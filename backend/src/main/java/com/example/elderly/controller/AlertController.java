@@ -6,6 +6,7 @@ import com.example.elderly.common.Result;
 import com.example.elderly.dto.alert.AlertBatchDTO;
 import com.example.elderly.dto.alert.AlertProcessDTO;
 import com.example.elderly.dto.alert.AlertQueryDTO;
+import com.example.elderly.dto.alert.AlertCreateDTO;
 import com.example.elderly.entity.Alert;
 import com.example.elderly.vo.AlertVO;
 import java.util.stream.Collectors;
@@ -22,8 +23,17 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AlertController {
     private final AlertService alertService;
-    @GetMapping("/list")
-    public Result<PageResult<AlertVO>> list(@Valid AlertQueryDTO dto){
+
+    /**
+     * 创建告警：供视频检测等能力把识别结果写入业务告警列表。
+     * 返回新告警的 ID。
+     */
+    @PostMapping("/create")
+    public Result<Long> create(@Valid @RequestBody AlertCreateDTO dto) {
+        return Result.success(alertService.createAlert(dto));
+    }
+
+    @GetMapping("/list")    public Result<PageResult<AlertVO>> list(@Valid AlertQueryDTO dto){
         IPage<Alert> page = alertService.pageList(dto);
         PageResult<AlertVO> result = PageResult.build(page.getTotal(),
                 page.getRecords().stream().map(AlertController::toVO).collect(Collectors.toList()));
